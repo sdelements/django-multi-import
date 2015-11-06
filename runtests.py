@@ -19,7 +19,7 @@ if not settings.configured:
         ),
         INSTALLED_APPS=(
             'multi_import',
-            'tests',
+            'test',
         ),
         SITE_ID=1,
         SECRET_KEY='this-is-just-for-tests-so-not-that-secret',
@@ -32,7 +32,7 @@ from django.test.utils import get_runner
 def runtests():
     if hasattr(django, 'setup'):
         django.setup()
-    apps = sys.argv[1:] or ['tests', ]
+    apps = sys.argv[1:] or ['test', ]
     TestRunner = get_runner(settings)
     test_runner = TestRunner(verbosity=1, interactive=True, failfast=False)
     failures = test_runner.run_tests(apps)
