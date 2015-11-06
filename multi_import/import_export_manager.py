@@ -1,9 +1,9 @@
-from exporter import Exporter
-from import_diff_applier import ImportDiffApplier
-from import_diff_generator import ImportDiffGenerator
-from mappings import BoundMapping
-from object_resolver import ObjectResolver
-from value_resolver import ValueResolver
+from multi_import.exporter import Exporter
+from multi_import.import_diff_applier import ImportDiffApplier
+from multi_import.import_diff_generator import ImportDiffGenerator
+from multi_import.mappings import BoundMapping
+from multi_import.object_resolver import ObjectResolver
+from multi_import.value_resolver import ValueResolver
 
 
 class ImportExportManager(object):

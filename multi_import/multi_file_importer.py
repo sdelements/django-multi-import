@@ -9,10 +9,10 @@ import tablib.formats._xls as xls
 from django.http import HttpResponse
 from tablib.core import Dataset
 
-from multi_importer import (InvalidDatasetError,
-                            MultiImportExporter,
-                            MultiImportResult)
-from utils import normalize_string
+from multi_import.multi_importer import (InvalidDatasetError,
+                                         MultiImportExporter,
+                                         MultiImportResult)
+from multi_import.utils import normalize_string
 
 
 class InvalidFileError(Exception):

@@ -1,7 +1,7 @@
 from django.core.exceptions import FieldError, MultipleObjectsReturned, ObjectDoesNotExist
 from django.db.models import BooleanField
 
-from utils import normalize_string
+from multi_import.utils import normalize_string
 
 
 class ResolvedValue(object):
