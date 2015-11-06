@@ -1,6 +1,5 @@
 import zipfile
-from io import BytesIO
-from StringIO import StringIO
+from io import BytesIO, StringIO
 
 import chardet
 import tablib
