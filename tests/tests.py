@@ -5,8 +5,8 @@ from multi_import.mappings import Mapping, BoundMapping
 
 
 class Person(models.Model):
-    first_name = models.CharField()
-    last_name = models.CharField()
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100)
     partner = models.ForeignKey('Person', related_name='person_partner')
     children = models.ManyToManyField('Person', related_name='person_children')
 
