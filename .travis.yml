@@ -3,16 +3,28 @@ sudo: false
 language: python
 
 python:
-  - "2.7"
+  - 2.7
+  - 3.3
 
 env:
-  - TOXENV=py27-1.4.X
-  - TOXENV=py27-1.5.X,py32-1.5.X
-  - TOXENV=py27-1.6.X,py32-1.6.X
-  - TOXENV=py27-1.7.X,py32-1.7.X
+  - DJANGO=1.4
+  - DJANGO=1.5
+  - DJANGO=1.6
+  - DJANGO=1.7
+  - DJANGO=1.8
+
+matrix:
+  exclude:
+    - python: 3.3
+      env: DJANGO=1.4
+    - python: 3.3
+      env: DJANGO=1.5
+    - python: 3.3
+      env: DJANGO=1.6
 
 install:
-  - pip install tox
+  - pip install -q Django==$DJANGO --use-mirrors
+  - pip install -r requirements.txt --use-mirrors
 
 script:
-    - tox
+  - ./runtests.py
