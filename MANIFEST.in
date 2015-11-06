@@ -1,0 +1,5 @@
+include AUTHORS
+include LICENSE
+include README.rst
+recursive-include multi_import/static *
+recursive-include multi_import/templates *

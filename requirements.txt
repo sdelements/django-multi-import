@@ -1,0 +1,4 @@
+Django>=1.4                             # BSD
+six==1.6.1                              # MIT
+chardet==2.3.0                          # LGPL
+tablib==0.10.0                          # MIT
