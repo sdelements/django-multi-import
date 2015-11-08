@@ -49,7 +49,10 @@ class ImportResult(object):
         new_dict = {
             'line_number': line_number,
             'row_number': row_number,
-            'attributes': [attributes.get(attribute, ['']) for attribute in self.diff['column_names']]
+            'attributes': [
+                attributes.get(attribute, [''])
+                for attribute in self.diff['column_names']
+            ]
         }
         self.diff['new_objects'].append(new_dict)
         self.refs.append(ref)
@@ -58,7 +61,10 @@ class ImportResult(object):
         new_dict = {
             'line_number': line_number,
             'row_number': row_number,
-            'attributes': [attributes.get(attribute, ['']) for attribute in self.diff['column_names']],
+            'attributes': [
+                attributes.get(attribute, [''])
+                for attribute in self.diff['column_names']
+            ],
             'id': id
         }
         self.diff['updated_objects'].append(new_dict)
@@ -116,7 +122,8 @@ class ImportDiffGenerator(object):
 
     def normalize_row_data(self, row_data):
         """
-        Converts all values in row_data dict to strings. Required for Excel imports.
+        Converts all values in row_data dict to strings.
+        Required for Excel imports.
         """
         data = {}
         for key, value in row_data.iteritems():
@@ -139,31 +146,38 @@ class ImportDiffGenerator(object):
         for row_number, row_data in enumerate(dataset.dict, start=1):
             row_data = self.normalize_row_data(row_data)
             line_number = first_row_line_number + line_count
-            line_count += 1 + sum([value.count('\n') for value in row_data.values()])
+            line_count += 1 + sum([
+                value.count('\n') for value in row_data.values()
+            ])
             yield Row(row_number, line_number, row_data)
 
-    def row_has_no_changes(self, file_mappings, row, existing_obj):
+    def row_has_no_changes(self, file_mappings, row, instance):
         """
-        Compares the imported values to a database instance, returns True if there are no changes.
+        Compares the imported values to a database instance,
+        returns True if there are no changes.
         """
-        if not existing_obj:
+        if not instance:
             return False
 
-        imported_dict = {mapping.field_name: row.data[mapping.column_name] for mapping in file_mappings}
-        resolved_values = self.object_resolver.resolve_export_values(existing_obj, columns=row.data.keys())
-        model_dict = {key: value.get_string() for key, value in resolved_values.dict.iteritems()}
+        resolver = self.object_resolver
+        columns = row.data.keys()
+        resolved_values = resolver.resolve_export_values(instance,
+                                                         columns)
+        imported_dict = {
+            mapping.field_name: row.data[mapping.column_name]
+            for mapping in file_mappings
+        }
+        model_dict = {
+            key: value.get_string()
+            for key, value in resolved_values.dict.iteritems()
+        }
 
         return dict(imported_dict) == dict(model_dict)
 
-    def resolve_model_values(self, new_object_refs, row):
-        """
-        Resolves imported values into values that can be set on a model instance.
-        """
-        return self.object_resolver.resolve_import_values(row.data, new_object_refs)
-
     def run_model_validation(self, resolved_values):
         """
-        Instantiates a model using the resolved values, and runs full_clean() to validate.
+        Instantiates a model using the resolved values,
+        and runs full_clean() to validate.
         """
         model_errors = []
 
@@ -185,48 +199,69 @@ class ImportDiffGenerator(object):
         except ValidationError as e:
             for field_name, errors in e.error_dict.iteritems():
                 column_name = self.field_mappings[field_name].column_name
-                model_errors.extend([(column_name, error.messages) for error in errors])
+                model_errors.extend(
+                    [(column_name, error.messages) for error in errors]
+                )
 
         return instance, model_errors
 
-    def get_diff_data(self, row, model_value_set, file_mappings, instance=None):
+    def get_diff_data(self,
+                      row,
+                      resolved_values,
+                      file_mappings,
+                      instance=None):
+
         if not instance:
             return dict(((k, [v]) for k, v in row.data.iteritems()))
 
         changes = {}
 
         column_names = [mapping.column_name for mapping in file_mappings]
-        old_values = self.object_resolver.resolve_export_values(instance, columns=column_names)
+        old_values = self.object_resolver.resolve_export_values(instance,
+                                                                column_names)
 
         for old_value in old_values.list:
             mapping = old_value.mapping
             old_val_str = old_value.get_string()
-            new_val = model_value_set.dict[mapping.field_name]
+            new_val = resolved_values.dict[mapping.field_name]
             new_val_str = new_val.get_string()
 
             if mapping.readonly or old_val_str == new_val_str:
                 continue
 
-            if mapping.is_foreign_key and not new_val.exclude_from_model_validation:
-                changes[mapping.column_name] = [old_val_str, new_val_str, new_val.value.pk]
+            if (mapping.is_foreign_key and
+                    not new_val.exclude_from_model_validation):
+                changes[mapping.column_name] = [old_val_str,
+                                                new_val_str,
+                                                new_val.value.pk]
             else:
-                changes[mapping.column_name] = [old_val_str, new_val_str]
+                changes[mapping.column_name] = [old_val_str,
+                                                new_val_str]
 
         return changes if changes else None
 
-    def add_to_diff_result(self, result, file_mappings, row, data, existing_obj, obj):
-        if existing_obj:
-            changes = self.get_diff_data(row, data, file_mappings, existing_obj)
+    def add_to_diff_result(self,
+                           result,
+                           file_mappings,
+                           row,
+                           data,
+                           instance):
+
+        if instance.pk:
+            changes = self.get_diff_data(row, data, file_mappings, instance)
             if changes:
-                result.add_updated_object(changes, row.line_number, row.row_number, existing_obj.pk)
+                result.add_updated_object(changes,
+                                          row.line_number,
+                                          row.row_number,
+                                          instance.pk)
             else:
                 result.increment_unchanged_objects()
 
         else:
             changes = self.get_diff_data(row, data, file_mappings)
             result.add_new_object(changes, row.line_number, row.row_number, {
-                'title': obj.title,
-                'obj': obj
+                'title': instance.title,
+                'obj': instance
             })
 
     def generate_import_diff(self, dataset, new_object_refs=None):
@@ -243,20 +278,22 @@ class ImportDiffGenerator(object):
         for row in self.enumerate_dataset(dataset):
 
             try:
-                existing_obj = self.lookup_model_object(row)
+                instance = self.lookup_model_object(row)
             except MultipleObjectsReturned:
                 result.add_row_error(row, 'Multiple database entries match.')
                 continue
 
-            if self.row_has_no_changes(file_mappings, row, existing_obj):
+            if self.row_has_no_changes(file_mappings, row, instance):
                 result.increment_unchanged_objects()
                 continue
 
-            if existing_obj and not self.can_update_object(existing_obj):
+            if instance and not self.can_update_object(instance):
                 result.add_row_error(row, 'Can not update this item.')
                 continue
 
-            resolved_values = self.object_resolver.resolve_import_values(row.data, new_object_refs)
+            resolver = self.object_resolver
+            resolved_values = resolver.resolve_import_values(row.data,
+                                                             new_object_refs)
 
             if resolved_values.errors:
                 for mapping, errors in resolved_values.errors:
@@ -269,6 +306,10 @@ class ImportDiffGenerator(object):
                     result.add_row_errors(row, messages, column_name)
                 continue
 
-            self.add_to_diff_result(result, file_mappings, row, resolved_values, existing_obj, new_obj)
+            self.add_to_diff_result(result,
+                                    file_mappings,
+                                    row,
+                                    resolved_values,
+                                    instance or new_obj)
 
         return result

@@ -8,7 +8,10 @@ class ResolvedObject(object):
 
     @property
     def errors(self):
-        return [(value.mapping, value.errors) for value in self.list if value.errors]
+        return [
+            (value.mapping, value.errors) for value in self.list
+            if value.errors
+        ]
 
 
 class ObjectResolver(object):
@@ -21,11 +24,15 @@ class ObjectResolver(object):
         self.value_resolver_kwargs = value_resolver_kwargs or {}
 
     def get_value_resolver(self, mapping):
-        return self.value_resolver(mapping=mapping, **self.value_resolver_kwargs)
+        return self.value_resolver(mapping=mapping,
+                                   **self.value_resolver_kwargs)
 
     def get_value_resolvers(self, columns=None):
         if columns:
-            mappings = [mapping for mapping in self.mappings if mapping.column_name in columns]
+            mappings = [
+                mapping for mapping in self.mappings
+                if mapping.column_name in columns
+            ]
         else:
             mappings = self.mappings
 
@@ -34,15 +41,21 @@ class ObjectResolver(object):
     def resolve_export_values(self, instance, columns=None):
         value_resolvers = self.get_value_resolvers(columns)
         resolved_values = [
-            (value_resolver.mapping.field_name, value_resolver.resolve_export_value(instance))
+            (value_resolver.mapping.field_name,
+             value_resolver.resolve_export_value(instance))
             for value_resolver in value_resolvers
         ]
         return ResolvedObject(resolved_values)
 
-    def resolve_import_values(self, source, new_object_refs=None, columns=None):
+    def resolve_import_values(self,
+                              source,
+                              new_object_refs=None,
+                              columns=None):
+
         value_resolvers = self.get_value_resolvers(columns)
         resolved_values = [
-            (value_resolver.mapping.field_name, value_resolver.resolve_import_value(source, new_object_refs))
+            (value_resolver.mapping.field_name,
+             value_resolver.resolve_import_value(source, new_object_refs))
             for value_resolver in value_resolvers
         ]
         return ResolvedObject(resolved_values)

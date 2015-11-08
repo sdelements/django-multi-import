@@ -41,12 +41,16 @@ class ExportResult(object):
 
 class MultiImportExporter(object):
     """
-    Coordinates several ImportExporter classes, to enable multi-dataset export and imports.
+    Coordinates several ImportExporter classes,
+    to enable multi-dataset export and imports.
     """
     classes = []
 
     def __init__(self):
-        import_exporters = [cls(**self.get_import_export_manager_kwargs()) for cls in self.classes]
+        import_exporters = [
+            cls(**self.get_import_export_manager_kwargs())
+            for cls in self.classes
+        ]
         self.import_exporters = self.sort_importers(import_exporters)
 
     def get_import_export_manager_kwargs(self):
@@ -63,7 +67,10 @@ class MultiImportExporter(object):
             else:
                 models = [result.model for result in results]
                 try:
-                    index = max([models.index(dependency) for dependency in importer.dependencies]) + 1
+                    index = 1 + max([
+                        models.index(dependency)
+                        for dependency in importer.dependencies
+                    ])
                 except ValueError:
                     index = -1
 
@@ -81,7 +88,10 @@ class MultiImportExporter(object):
         )
         model = next(models, None)
         if not model:
-            raise InvalidDatasetError('Unrecognized file: columns should match those in the import template.')
+            raise InvalidDatasetError(
+                'Unrecognized file: '
+                'columns should match those in the import template.'
+            )
 
         results[model] = (filename, dataset)
         return results
@@ -93,33 +103,38 @@ class MultiImportExporter(object):
 
         for importer in self.import_exporters:
             filename, dataset = datasets.get(importer.model, (None, None))
-            if filename:
-                result = importer.generate_import_diff(dataset, new_objects_refs)
-                new_objects_refs.update(result.new_object_refs)
-                results.add_result(filename, result)
+            if not filename:
+                continue
+
+            result = importer.generate_import_diff(dataset, new_objects_refs)
+            new_objects_refs.update(result.new_object_refs)
+            results.add_result(filename, result)
 
         return results
 
     def apply_import(self, diff):
         files = diff.get('files', [])
-
         for importer in self.import_exporters:
-            file = next((file for file in files if file['model'] == importer.key), None)
-            if not file:
-                continue
-
-            importer.apply_import_diff(file)
+            datasets = (f for f in files if f['model'] == importer.key)
+            for dataset in datasets:
+                importer.apply_import_diff(dataset)
 
     def export_datasets(self, keys=None, template=False):
         if keys:
             # Check to make sure we're not passing in bad keys
-            all_valid_keys = [exporter.key for exporter in self.import_exporters]
+            all_valid_keys = [
+                exporter.key for exporter in self.import_exporters
+            ]
             invalid_keys = [key for key in keys if key not in all_valid_keys]
             if invalid_keys:
-                message = "Invalid keys {0} for exporting".format(','.join(invalid_keys))
+                joined_keys = ','.join(invalid_keys)
+                message = "Invalid keys {0} for exporting".format(joined_keys)
                 raise ValueError(message)
 
-            exporters = [exporter for exporter in self.import_exporters if exporter.key in keys]
+            exporters = [
+                exporter for exporter in self.import_exporters
+                if exporter.key in keys
+            ]
         else:
             exporters = self.import_exporters
 

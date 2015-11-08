@@ -7,7 +7,12 @@ class Mapping(object):
     User-defined column to model field mapping.
     """
 
-    def __init__(self, column_name, field_name=None, readonly=False, lookup_fields=None):
+    def __init__(self,
+                 column_name,
+                 field_name=None,
+                 readonly=False,
+                 lookup_fields=None):
+
         self.column_name = column_name
         self.field_name = field_name or column_name
         self.readonly = readonly
@@ -17,7 +22,6 @@ class Mapping(object):
 class BoundMapping(Mapping):
     """
     A Mapping object that has been bound to a model class.
-    This is used for mapping objects used at runtime by the importer and exporters.
     """
 
     def __init__(self, mapping, model):
@@ -57,9 +61,14 @@ class BoundMapping(Mapping):
             self.related_model = self.field.related.parent_model
 
         if not self.lookup_fields:
-            self.lookup_fields = ('universal_id', 'pk', 'title', 'name', 'text')
+            self.lookup_fields = ('universal_id',
+                                  'pk',
+                                  'title',
+                                  'name',
+                                  'text')
 
-        if isinstance(self.related_object_descriptor, ReverseManyRelatedObjectsDescriptor):
+        if isinstance(self.related_object_descriptor,
+                      ReverseManyRelatedObjectsDescriptor):
             self.model_init = False
             self.is_one_to_many = True
         else:
@@ -71,4 +80,4 @@ class BoundMapping(Mapping):
 
     @classmethod
     def bind_mappings(cls, mappings, model):
-        return [cls.bind_mappings(mapping, model) for mapping in mappings]
+        return [cls.bind_mapping(mapping, model) for mapping in mappings]

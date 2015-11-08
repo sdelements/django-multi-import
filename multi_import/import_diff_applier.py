@@ -24,7 +24,10 @@ class ImportDiffApplier(object):
             if not value:
                 continue
 
-            mapping = next((mapping for mapping in self.mappings if mapping.field_name == attribute), None)
+            mapping = next((
+                mapping for mapping in self.mappings
+                if mapping.field_name == attribute
+            ), None)
 
             if mapping:
                 if mapping.is_foreign_key:
@@ -55,7 +58,10 @@ class ImportDiffApplier(object):
 
         for updated_object in updated_objects:
             obj = self.get_object_for_update(updated_object['id'])
-            changes = self.get_obj_changes_dict(diff_attributes, updated_object, update=True)
+
+            changes = self.get_obj_changes_dict(diff_attributes,
+                                                updated_object,
+                                                update=True)
 
             if changes:
                 for attribute_name, new_value in changes.iteritems():

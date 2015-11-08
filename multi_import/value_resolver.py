@@ -1,4 +1,6 @@
-from django.core.exceptions import FieldError, MultipleObjectsReturned, ObjectDoesNotExist
+from django.core.exceptions import (FieldError,
+                                    MultipleObjectsReturned,
+                                    ObjectDoesNotExist)
 from django.db.models import BooleanField
 
 from multi_import.utils import normalize_string
@@ -7,7 +9,8 @@ from multi_import.utils import normalize_string
 class ResolvedValue(object):
     """
     A value that has been resolved by a ValueResolver.
-    If errors occurred when attempting to resolve a value, the errors list will be populated.
+    If errors occurred when attempting to resolve a value,
+    the errors list will be populated.
     """
     def __init__(self, mapping, value, errors=None, exclude=False):
         self.mapping = mapping
@@ -29,7 +32,10 @@ class ResolvedValue(object):
             value = self._get_related_value(self.value)
 
         elif self.mapping.is_one_to_many:
-            value = ",".join([str(self._get_related_value(item)) for item in self.value])
+            values = [
+                str(self._get_related_value(item)) for item in self.value
+            ]
+            value = ",".join(values)
 
         elif self.value is None:
             value = ""
@@ -44,8 +50,16 @@ class ValueResolver(object):
     """
     An object that resolves import/values based on a BoundMapping.
     """
+    error_messages = {
+        'no_match': 'No match found for: {0}',
+        'multiple_matches': 'Multiple matches found for: {0}'
+    }
+
     def __init__(self, mapping):
         self.mapping = mapping
+
+    def get_error_message(self, key, value):
+        return self.error_messages[key].format(value)
 
     def resolve_export_value(self, instance):
         # Takes the model value and converts it to be displayed in an export.
@@ -93,7 +107,9 @@ class ValueResolver(object):
             return ResolvedValue(self.mapping, None)
 
         queryset = self.get_foreign_key_queryset()
-        error, value, exclude = self.lookup_related(queryset, field_value, new_object_refs)
+        error, value, exclude = self.lookup_related(queryset,
+                                                    field_value,
+                                                    new_object_refs)
         errors = [error] if error else []
         return ResolvedValue(self.mapping, value, errors, exclude)
 
@@ -109,7 +125,9 @@ class ValueResolver(object):
         queryset = self.get_one_to_many_queryset()
 
         for val in field_value.split(','):
-            error, value, exclude = self.lookup_related(queryset, val.strip(), new_object_refs)
+            error, value, exclude = self.lookup_related(queryset,
+                                                        val.strip(),
+                                                        new_object_refs)
             if error:
                 errors.append(error)
             if value:
@@ -124,13 +142,19 @@ class ValueResolver(object):
 
         return self.search_database(queryset, value)
 
+    def get_lookup_error(self, key, value):
+        return self.error_messages[key].format(value), None, False
+
     def search_new_objects(self, value, new_object_refs):
         new_objs = new_object_refs.get(self.mapping.related_model, [])
 
         if new_objs:
-            matches = [new_obj for new_obj in new_objs if new_obj['title'] == value]
+            matches = [
+                new_obj for new_obj in new_objs if new_obj['title'] == value
+            ]
+
             if len(matches) > 1:
-                return 'Multiple matches found for: {0}'.format(value), None, False
+                return self.get_lookup_error('multiple_matches', value)
             elif len(matches) == 1:
                 return None, matches[0]['obj'], True
 
@@ -143,6 +167,6 @@ class ValueResolver(object):
             except (FieldError, ObjectDoesNotExist, ValueError):
                 continue
             except MultipleObjectsReturned:
-                return 'Multiple matches found for: {0}'.format(value), None, False
+                return self.get_lookup_error('multiple_matches', value)
 
-        return 'No match found for: {0}'.format(value), None, False
+        return self.get_lookup_error('no_match', value)

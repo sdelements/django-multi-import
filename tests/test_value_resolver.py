@@ -30,7 +30,8 @@ class ValueResolverTests(TestCase):
 
     def test_export_foreign_key(self):
         sophie = Person(first_name='Sophie', last_name='Gregoire')
-        justin = Person(first_name='Justin', last_name='Trudeau', partner=sophie)
+        justin = Person(first_name='Justin', last_name='Trudeau',
+                        partner=sophie)
 
         value_resolver = self.get_value_resolver('partner')
         resolved_value = value_resolver.resolve_export_value(justin)
@@ -110,7 +111,8 @@ class ValueResolverTests(TestCase):
         xavier.save()
         ella_grace.save()
 
-        data = {'children': '{0},{1},{2}'.format(hadrien.pk, xavier.pk, ella_grace.pk)}
+        children = '{0},{1},{2}'.format(hadrien.pk, xavier.pk, ella_grace.pk)
+        data = {'children': children}
 
         value_resolver = self.get_value_resolver('children')
         resolved_value = value_resolver.resolve_import_value(data)
@@ -138,5 +140,7 @@ class ValueResolverTests(TestCase):
         value_resolver = self.get_value_resolver('children')
         resolved_value = value_resolver.resolve_import_value(data)
 
-        self.assertEqual(['No match found for: 6', 'No match found for: 4'], resolved_value.errors)
+        expected_errors = ['No match found for: 6', 'No match found for: 4']
+
+        self.assertEqual(expected_errors, resolved_value.errors)
         self.assertEqual([], resolved_value.value)

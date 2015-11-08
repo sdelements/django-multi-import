@@ -26,9 +26,13 @@ class ImportExportManager(object):
         self.bind_mappings(list(self.mappings))
 
     def bind_mappings(self, mappings):
-        self.mappings = [BoundMapping(mapping, self.model) for mapping in mappings]
-        self.column_mappings = {mapping.column_name: mapping for mapping in self.mappings}
-        self.field_mappings = {mapping.field_name: mapping for mapping in self.mappings}
+        self.mappings = BoundMapping.bind_mappings(mappings, self.model)
+        self.column_mappings = {
+            mapping.column_name: mapping for mapping in self.mappings
+        }
+        self.field_mappings = {
+            mapping.field_name: mapping for mapping in self.mappings
+        }
 
     @property
     def writable_mappings(self):
@@ -39,13 +43,18 @@ class ImportExportManager(object):
         """
         Returns a list of related models that this importer is dependent on.
         """
-        return [mapping.related_model for mapping in self.writable_mappings if mapping.is_relationship]
+        return [
+            mapping.related_model for mapping in self.writable_mappings
+            if mapping.is_relationship
+        ]
 
     def get_value_resolver_kwargs(self):
         return {}
 
     def get_object_resolver(self):
-        return ObjectResolver(self.value_resolver, self.mappings, self.get_value_resolver_kwargs())
+        return ObjectResolver(self.value_resolver,
+                              self.mappings,
+                              self.get_value_resolver_kwargs())
 
     def get_exporter_kwargs(self):
         return {
@@ -69,7 +78,9 @@ class ImportExportManager(object):
         }
 
     def get_import_diff_generator(self):
-        return self.import_diff_generator(**self.get_import_diff_generator_kwargs())
+        return self.import_diff_generator(
+            **self.get_import_diff_generator_kwargs()
+        )
 
     def get_import_diff_applier_kwargs(self):
         return {
@@ -79,7 +90,9 @@ class ImportExportManager(object):
         }
 
     def get_import_diff_applier(self):
-        return self.import_diff_applier(**self.get_import_diff_applier_kwargs())
+        return self.import_diff_applier(
+            **self.get_import_diff_applier_kwargs()
+        )
 
     def get_queryset(self):
         queryset = self.model.objects
@@ -104,7 +117,8 @@ class ImportExportManager(object):
 
     def generate_import_diff(self, dataset, new_object_refs=None):
         import_diff_generator = self.get_import_diff_generator()
-        return import_diff_generator.generate_import_diff(dataset, new_object_refs)
+        return import_diff_generator.generate_import_diff(dataset,
+                                                          new_object_refs)
 
     def apply_import_diff(self, diff_data):
         import_diff_applier = self.get_import_diff_applier()

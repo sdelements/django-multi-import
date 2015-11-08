@@ -46,12 +46,14 @@ class ExportResult(object):
             file = StringIO()
             with zipfile.ZipFile(file, "w") as zf:
                 for key, f in self.files.iteritems():
-                    zf.writestr("{0}.{1}".format(key, self.file_format), f.getvalue())
+                    fname = "{0}.{1}".format(key, self.file_format)
+                    zf.writestr(fname, f.getvalue())
             mimetype = "application-x-zip-compressed"
             filename = self.zip_filename + ".zip"
 
         response = HttpResponse(file.getvalue(), mimetype=mimetype)
-        response['Content-Disposition'] = 'attachment; filename={0}'.format(filename)
+        header = 'attachment; filename={0}'.format(filename)
+        response['Content-Disposition'] = header
         return response
 
 
@@ -93,7 +95,8 @@ class MultiFileImportExporter(MultiImportExporter):
 
     def ensure_unicode(self, file_contents):
         charset = chardet.detect(file_contents)
-        encoding, encoding_confidence = charset['encoding'], charset['confidence']
+        encoding = charset['encoding']
+        encoding_confidence = charset['confidence']
         if encoding and encoding_confidence > 0.5:
             return file_contents.decode(encoding.lower()).encode('utf8')
         else:

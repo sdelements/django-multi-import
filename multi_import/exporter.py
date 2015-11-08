@@ -22,4 +22,7 @@ class Exporter(object):
 
     def get_row(self, instance):
         resolved_values = self.object_resolver.resolve_export_values(instance)
-        return [resolved_value.get_string() for resolved_value in resolved_values.list]
+        return [
+            resolved_value.get_string()
+            for resolved_value in resolved_values.list
+        ]
