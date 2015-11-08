@@ -1,7 +1,7 @@
 from django.test import TestCase
 
 from multi_import.mappings import Mapping, BoundMapping
-from test.models import Person
+from tests.models import Person
 
 
 class MappingTests(TestCase):

@@ -1,43 +1,15 @@
 #!/usr/bin/env python
+import os
 import sys
 
 import django
 from django.conf import settings
-
-
-if not settings.configured:
-    settings.configure(
-        DATABASES={
-            'default': {
-                'ENGINE': 'django.db.backends.sqlite3',
-                'NAME': ':memory:',
-            }
-        },
-        MIDDLEWARE_CLASSES=(
-            'django.middleware.common.CommonMiddleware',
-            'django.middleware.csrf.CsrfViewMiddleware',
-        ),
-        INSTALLED_APPS=(
-            'multi_import',
-            'test',
-        ),
-        SITE_ID=1,
-        SECRET_KEY='this-is-just-for-tests-so-not-that-secret',
-    )
-
-
 from django.test.utils import get_runner
 
-
-def runtests():
-    if hasattr(django, 'setup'):
-        django.setup()
-    apps = sys.argv[1:] or ['test', ]
+if __name__ == "__main__":
+    os.environ['DJANGO_SETTINGS_MODULE'] = 'tests.settings'
+    django.setup()
     TestRunner = get_runner(settings)
     test_runner = TestRunner(verbosity=1, interactive=True, failfast=False)
-    failures = test_runner.run_tests(apps)
-    sys.exit(failures)
-
-
-if __name__ == '__main__':
-    runtests()
+    failures = test_runner.run_tests(["tests"])
+    sys.exit(bool(failures))
