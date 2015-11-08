@@ -30,6 +30,8 @@ class ValueResolverTests(TestCase):
 
     def test_export_foreign_key(self):
         sophie = Person(first_name='Sophie', last_name='Gregoire')
+        sophie.save()
+
         justin = Person(first_name='Justin', last_name='Trudeau',
                         partner=sophie)
 
