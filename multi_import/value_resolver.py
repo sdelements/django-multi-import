@@ -58,8 +58,10 @@ class ValueResolver(object):
 
         return ResolvedValue(self.mapping, value)
 
-    def resolve_import_value(self, source, new_object_refs=None):
+    def resolve_import_value(self, source=None, new_object_refs=None):
         # Takes the imported value and converts it a model value.
+        if source is None:
+            source = {}
         if new_object_refs is None:
             new_object_refs = {}
 
