@@ -13,6 +13,7 @@ class ImportExportManager(object):
     id_column = None
     mappings = []
     lookup_fields = ('pk',)
+    default_related_lookup_fields = ('pk',)
 
     value_resolver = ValueResolver
 
@@ -26,7 +27,9 @@ class ImportExportManager(object):
         self.bind_mappings(list(self.mappings))
 
     def bind_mappings(self, mappings):
-        self.mappings = BoundMapping.bind_mappings(mappings, self.model)
+        self.mappings = BoundMapping.bind_mappings(
+            mappings, self.model, self.default_related_lookup_fields
+        )
         self.column_mappings = {
             mapping.column_name: mapping for mapping in self.mappings
         }

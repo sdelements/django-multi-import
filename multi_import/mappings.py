@@ -24,11 +24,15 @@ class BoundMapping(Mapping):
     A Mapping object that has been bound to a model class.
     """
 
-    def __init__(self, mapping, model):
+    def __init__(self, mapping, model, default_lookup_fields=None):
+        lookup_fields = (
+            mapping.lookup_fields or default_lookup_fields or ('pk',)
+        )
+
         super(BoundMapping, self).__init__(mapping.column_name,
                                            mapping.field_name,
                                            mapping.readonly,
-                                           mapping.lookup_fields)
+                                           lookup_fields)
 
         self.model = model
         self.field = None
@@ -60,13 +64,6 @@ class BoundMapping(Mapping):
         else:
             self.related_model = self.field.related.parent_model
 
-        if not self.lookup_fields:
-            self.lookup_fields = ('universal_id',
-                                  'pk',
-                                  'title',
-                                  'name',
-                                  'text')
-
         if isinstance(self.related_object_descriptor,
                       ReverseManyRelatedObjectsDescriptor):
             self.model_init = False
@@ -75,9 +72,12 @@ class BoundMapping(Mapping):
             self.is_foreign_key = True
 
     @classmethod
-    def bind_mapping(cls, mapping, model):
-        return cls(mapping, model)
+    def bind_mapping(cls, mapping, model, default_lookup_fields=None):
+        return cls(mapping, model, default_lookup_fields)
 
     @classmethod
-    def bind_mappings(cls, mappings, model):
-        return [cls.bind_mapping(mapping, model) for mapping in mappings]
+    def bind_mappings(cls, mappings, model, default_lookup_fields=None):
+        return [
+            cls.bind_mapping(mapping, model, default_lookup_fields)
+            for mapping in mappings
+        ]
