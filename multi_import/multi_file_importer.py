@@ -1,12 +1,13 @@
 import zipfile
-from io import BytesIO, StringIO
 
 import chardet
 import tablib
 import tablib.formats._csv as csv
 import tablib.formats._xls as xls
+import tablib.formats._xlsx as xlsx
 from django.http import HttpResponse
 from tablib.core import Dataset
+from tablib.compat import BytesIO
 
 from multi_import.multi_importer import (InvalidDatasetError,
                                          MultiImportExporter,
@@ -16,6 +17,100 @@ from multi_import.utils import normalize_string
 
 class InvalidFileError(Exception):
     pass
+
+
+class FileFormat(object):
+    def __init__(self, file_format, read_file_as_string=False):
+        self.format = file_format
+        self.read_file_as_string = read_file_as_string
+
+    @property
+    def key(self):
+        return self.format.title
+
+    def get_file_object(self, file_handler, file_contents):
+        if self.read_file_as_string:
+            return file_contents
+
+        file_handler.pos = 0
+        return file_handler
+
+    def detect(self, file_handler, file_contents):
+        file_object = self.get_file_object(file_handler, file_contents)
+        try:
+            return self.format.detect(file_object)
+        except AttributeError:
+            pass
+        return False
+
+    def pre_read(self, file_object):
+        return file_object
+
+    def read(self, file_handler, file_contents):
+        file_object = self.get_file_object(file_handler, file_contents)
+        file_object = self.pre_read(file_object)
+        try:
+            dataset = Dataset()
+            self.format.import_set(dataset, self.pre_read(file_object))
+            return dataset
+        except AttributeError:
+            raise InvalidFileError('Empty or Invalid File.')
+
+    def write(self, dataset):
+        data = getattr(dataset, self.format.title)
+        f = BytesIO()
+        f.write(data)
+        return f
+
+
+class CsvFormat(FileFormat):
+    def __init__(self):
+        super(CsvFormat, self).__init__(csv, read_file_as_string=True)
+
+    def ensure_unicode(self, file_contents):
+        charset = chardet.detect(file_contents)
+        encoding = charset['encoding']
+        encoding_confidence = charset['confidence']
+        if encoding and encoding_confidence > 0.5:
+            return file_contents.decode(encoding.lower()).encode('utf8')
+        else:
+            raise InvalidFileError('Unknown file type.')
+
+    def pre_read(self, file_object):
+        file_object = self.ensure_unicode(file_object)
+        file_object = normalize_string(file_object)
+        return file_object
+
+
+class FileReadWriter(object):
+    file_formats = (
+        FileFormat(xlsx),
+        FileFormat(xls),
+        CsvFormat(),
+    )
+
+    def read(self, file_handler):
+        file_handler.pos = 0
+        file_contents = file_handler.read()
+
+        for file_format in self.file_formats:
+            try:
+                if file_format.detect(file_handler, file_contents):
+                    return file_format.read(file_handler, file_contents)
+            except AttributeError:
+                pass
+
+        raise InvalidFileError('Invalid File Type.')
+
+    def write(self, dataset, file_format=None):
+        if file_format is None:
+            writer = self.file_formats[0]
+        else:
+            writer = next(
+                (f for f in self.file_formats if f.key == file_format),
+                None)
+
+        return writer.write(dataset)
 
 
 class ExportResult(object):
@@ -43,7 +138,7 @@ class ExportResult(object):
             filename = "{0}.{1}".format(key, self.file_format)
 
         else:
-            file = StringIO()
+            file = BytesIO()
             with zipfile.ZipFile(file, "w") as zf:
                 for key, f in self.files.iteritems():
                     fname = "{0}.{1}".format(key, self.file_format)
@@ -60,7 +155,10 @@ class ExportResult(object):
 class MultiFileImportExporter(MultiImportExporter):
 
     zip_filename = "export"
-    file_formats = (xls, csv)
+
+    def __init__(self, *args, **kwargs):
+        super(MultiFileImportExporter, self).__init__(*args, **kwargs)
+        self.file_writer = FileReadWriter()
 
     def export_files(self, keys=None, template=False, file_format='csv'):
         datasets = self.export_datasets(keys, template)
@@ -68,65 +166,17 @@ class MultiFileImportExporter(MultiImportExporter):
         result = ExportResult(file_format, self.zip_filename)
 
         for key, dataset in datasets.datasets.iteritems():
-            if file_format == 'xls':
-                f = BytesIO()
-                f.write(dataset.xls)
-            else:
-                f = StringIO()
-                f.write(dataset.csv)
+            f = self.file_writer.write(dataset, file_format)
             result.add_result(key, f)
 
         return result
 
-    def detect_tablib_format(self, stream):
-        for fmt in self.file_formats:
-            try:
-                if fmt.detect(stream):
-                    return fmt
-            except AttributeError:
-                pass
-        return None
-
-    def ensure_correct_file_type(self, file_contents):
-        format = self.detect_tablib_format(file_contents)
-        if not format:
-            raise InvalidFileError('Invalid File Type.')
-        return format
-
-    def ensure_unicode(self, file_contents):
-        charset = chardet.detect(file_contents)
-        encoding = charset['encoding']
-        encoding_confidence = charset['confidence']
-        if encoding and encoding_confidence > 0.5:
-            return file_contents.decode(encoding.lower()).encode('utf8')
-        else:
-            raise InvalidFileError('Unknown file type.')
-
-    def read_file(self, file):
+    def read_file(self, file_handler):
         try:
-            file.pos = 0
-            file_contents = file.read()
-
-            file_format = self.ensure_correct_file_type(file_contents)
-
-            if not file_format:
-                raise InvalidFileError('Invalid file format.')
-
-            if file_format.title == 'csv':
-                file_contents = self.ensure_unicode(file_contents)
-                file_contents = normalize_string(file_contents)
-
-            try:
-                dataset = Dataset()
-                file_format.import_set(dataset, file_contents)
-                return dataset
-            except AttributeError:
-                pass
+            return self.file_writer.read(file_handler)
 
         except (tablib.InvalidDimensions, tablib.UnsupportedFormat):
-            pass
-
-        raise InvalidFileError('Empty or Invalid File.')
+            raise InvalidFileError('Empty or Invalid File.')
 
     def import_files(self, files):
         results = MultiImportResult()
