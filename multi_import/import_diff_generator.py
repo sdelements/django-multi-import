@@ -1,6 +1,6 @@
 from django.core.exceptions import MultipleObjectsReturned, ValidationError
 from six import string_types
-from multi_import.cached_query import CachedQuery
+from multi_import.object_cache import CachedQuery, ObjectCache
 from multi_import.utils import normalize_string
 
 
