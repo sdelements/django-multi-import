@@ -37,11 +37,11 @@ class ResolvedValue(object):
             ]
             value = ",".join(values)
 
-        elif self.value is None:
-            value = ""
-
         else:
             value = self.value
+
+        if value is None:
+            value = ""
 
         return normalize_string(unicode(value))
 

@@ -125,6 +125,9 @@ class ImportDiffGenerator(object):
         """
         data = {}
         for key, value in row_data.iteritems():
+            if value is None:
+                value = ''
+
             if isinstance(value, float) and value.is_integer():
                 value = int(value)
 
