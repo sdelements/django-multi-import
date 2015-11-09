@@ -107,7 +107,7 @@ class MultiImportExporter(object):
                 continue
 
             result = importer.generate_import_diff(dataset, new_objects_refs)
-            new_objects_refs.update(result.new_object_refs)
+            new_objects_refs[result.model] = result.new_object_refs
             results.add_result(filename, result)
 
         return results

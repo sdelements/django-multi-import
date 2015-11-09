@@ -149,14 +149,12 @@ class ValueResolver(object):
         new_objs = new_object_refs.get(self.mapping.related_model, [])
 
         if new_objs:
-            matches = [
-                new_obj for new_obj in new_objs if new_obj['title'] == value
-            ]
-
-            if len(matches) > 1:
+            try:
+                match = new_objs.lookup_value(value)
+                if match:
+                    return None, match, True
+            except MultipleObjectsReturned:
                 return self.get_lookup_error('multiple_matches', value)
-            elif len(matches) == 1:
-                return None, matches[0]['obj'], True
 
         return None
 

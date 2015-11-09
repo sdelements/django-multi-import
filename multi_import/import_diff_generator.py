@@ -9,7 +9,8 @@ class ImportResult(object):
     Results from an attempt to generate an import diff.
     Contains a list of errors, or if successful, a diff object.
     """
-    def __init__(self, model_key, model_cls, mappings):
+    def __init__(self, model_key, model, mappings, lookup_fields):
+        self.model = model
         self.errors = []
         self.diff = {
             'model': model_key,
@@ -19,10 +20,7 @@ class ImportResult(object):
             'new_objects': [],
             'unchanged_objects': 0
         }
-        self.refs = []
-        self.new_object_refs = {
-            model_cls: self.refs
-        }
+        self.new_object_refs = ObjectCache(lookup_fields)
 
     @property
     def valid(self):
@@ -45,7 +43,7 @@ class ImportResult(object):
         for message in messages:
             self.add_row_error(row, message, column_name)
 
-    def add_new_object(self, attributes, line_number, row_number, ref):
+    def add_new_object(self, attributes, line_number, row_number, instance):
         new_dict = {
             'line_number': line_number,
             'row_number': row_number,
@@ -55,7 +53,7 @@ class ImportResult(object):
             ]
         }
         self.diff['new_objects'].append(new_dict)
-        self.refs.append(ref)
+        self.new_object_refs.cache_instance(instance)
 
     def add_updated_object(self, attributes, line_number, row_number, id):
         new_dict = {
@@ -259,10 +257,10 @@ class ImportDiffGenerator(object):
 
         else:
             changes = self.get_diff_data(row, data, file_mappings)
-            result.add_new_object(changes, row.line_number, row.row_number, {
-                'title': instance.title,
-                'obj': instance
-            })
+            result.add_new_object(changes,
+                                  row.line_number,
+                                  row.row_number,
+                                  instance)
 
     def generate_import_diff(self, dataset, new_object_refs=None):
         if new_object_refs is None:
@@ -273,7 +271,10 @@ class ImportDiffGenerator(object):
             if mapping.column_name in dataset.headers
         ]
 
-        result = ImportResult(self.key, self.model, file_mappings)
+        result = ImportResult(self.key,
+                              self.model,
+                              file_mappings,
+                              self.lookup_fields)
 
         for row in self.enumerate_dataset(dataset):
 
