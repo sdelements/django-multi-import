@@ -46,6 +46,11 @@ class MultiImportExporter(object):
     """
     classes = []
 
+    error_messages = {
+        'invalid_key': u'Columns should match those in the import template.',
+        'invalid_export_keys': u'Invalid keys {0} for exporting'
+    }
+
     def __init__(self):
         import_exporters = [
             cls(**self.get_import_export_manager_kwargs())
@@ -88,10 +93,7 @@ class MultiImportExporter(object):
         )
         model = next(models, None)
         if not model:
-            raise InvalidDatasetError(
-                'Unrecognized file: '
-                'columns should match those in the import template.'
-            )
+            raise InvalidDatasetError(self.error_messages['invalid_key'])
 
         results[model] = (filename, dataset)
         return results
@@ -127,9 +129,11 @@ class MultiImportExporter(object):
             ]
             invalid_keys = [key for key in keys if key not in all_valid_keys]
             if invalid_keys:
+                error_key = 'invalid_export_keys'
                 joined_keys = ','.join(invalid_keys)
-                message = "Invalid keys {0} for exporting".format(joined_keys)
-                raise ValueError(message)
+                raise ValueError(
+                    self.error_messages[error_key].format(joined_keys)
+                )
 
             exporters = [
                 exporter for exporter in self.import_exporters

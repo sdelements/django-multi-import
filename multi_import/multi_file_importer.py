@@ -159,6 +159,7 @@ class MultiFileImportExporter(MultiImportExporter):
     def __init__(self, *args, **kwargs):
         super(MultiFileImportExporter, self).__init__(*args, **kwargs)
         self.file_writer = FileReadWriter()
+        self.error_messages['invalid_file'] = u'Empty or Invalid File.'
 
     def export_files(self, keys=None, template=False, file_format='csv'):
         datasets = self.export_datasets(keys, template)
@@ -176,7 +177,7 @@ class MultiFileImportExporter(MultiImportExporter):
             return self.file_writer.read(file_handler)
 
         except (tablib.InvalidDimensions, tablib.UnsupportedFormat):
-            raise InvalidFileError('Empty or Invalid File.')
+            raise InvalidFileError(self.error_messages['invalid_file'])
 
     def import_files(self, files):
         results = MultiImportResult()

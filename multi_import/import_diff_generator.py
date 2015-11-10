@@ -87,6 +87,11 @@ class ImportDiffGenerator(object):
     """
     lookup_fields = ('pk',)
 
+    error_messages = {
+        'cannot_update': u'Can not update this item.',
+        'multiple_matches': u'Multiple database entries match.'
+    }
+
     def __init__(self,
                  key,
                  model,
@@ -296,7 +301,8 @@ class ImportDiffGenerator(object):
             try:
                 instance = self.lookup_model_object(row)
             except MultipleObjectsReturned:
-                result.add_row_error(row, 'Multiple database entries match.')
+                result.add_row_error(row,
+                                     self.error_messages['multiple_matches'])
                 continue
 
             if self.row_has_no_changes(file_mappings, row, instance):
@@ -304,7 +310,7 @@ class ImportDiffGenerator(object):
                 continue
 
             if instance and not self.can_update_object(instance):
-                result.add_row_error(row, 'Can not update this item.')
+                result.add_row_error(row, self.error_messages['cannot_update'])
                 continue
 
             resolver = self.object_resolver

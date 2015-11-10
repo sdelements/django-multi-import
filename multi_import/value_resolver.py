@@ -51,8 +51,8 @@ class ValueResolver(object):
     An object that resolves import/values based on a BoundMapping.
     """
     error_messages = {
-        'no_match': 'No match found for: {0}',
-        'multiple_matches': 'Multiple matches found for: {0}'
+        'no_match': u'No match found for: {0}',
+        'multiple_matches': u'Multiple matches found for: {0}'
     }
 
     def __init__(self, mapping):
