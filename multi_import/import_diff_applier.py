@@ -25,16 +25,15 @@ class ImportDiffApplier(object):
             mapping = next((
                 mapping for mapping in self.mappings
                 if mapping.field_name == attribute
-            ), None)
+            ))
 
-            if mapping:
-                if mapping.is_foreign_key:
-                    value = mapping.related_model.objects.get(pk=value)
-                if mapping.is_one_to_many:
-                    value = [
-                        mapping.related_model.objects.get(pk=val)
-                        for val in value.split(',')
-                    ]
+            if mapping.is_foreign_key:
+                value = mapping.related_model.objects.get(pk=value)
+            if mapping.is_one_to_many:
+                value = [
+                    mapping.related_model.objects.get(pk=val)
+                    for val in value.split(',')
+                ]
 
             yield mapping, value
 
@@ -43,6 +42,12 @@ class ImportDiffApplier(object):
         instance.full_clean()
         instance.save()
         return instance
+
+    def set_one_to_many(self, instance, mapping, values):
+        object_manager = getattr(instance, mapping.field_name)
+        object_manager.clear()
+        for value in values:
+            object_manager.add(value)
 
     def process_new_objects(self, diff_attributes, new_objects):
         for new_object in new_objects:
@@ -58,24 +63,24 @@ class ImportDiffApplier(object):
 
             for mapping, value in changes:
                 if mapping.is_one_to_many:
-                    object_manager = getattr(instance, mapping.field_name)
-                    object_manager.clear()
-                    for val in value:
-                        object_manager.add(val)
+                    self.set_one_to_many(instance, mapping, value)
 
     def process_updated_objects(self, diff_attributes, updated_objects):
         for updated_object in updated_objects:
-            obj = self.get_object_for_update(updated_object['id'])
+            instance = self.get_object_for_update(updated_object['id'])
 
             changes = self.get_object_changes(diff_attributes,
                                               updated_object,
                                               update=True)
 
             for mapping, value in changes:
-                setattr(obj, mapping.field_name, value)
+                if mapping.is_one_to_many:
+                    self.set_one_to_many(instance, mapping, value)
+                else:
+                    setattr(instance, mapping.field_name, value)
 
-            obj.full_clean()
-            obj.save()
+            instance.full_clean()
+            instance.save()
 
     def apply_diff(self, diff_data):
         diff_attributes = diff_data['attributes']
