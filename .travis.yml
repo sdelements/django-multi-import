@@ -4,24 +4,30 @@ language: python
 
 python:
   - 2.7
+  - 3.2
   - 3.3
+  - 3.4
+  - 3.5
 
 env:
-  - DJANGO=1.4
-  - DJANGO=1.5
-  - DJANGO=1.6
-  - DJANGO=1.7
-  - DJANGO=1.8
+  matrix:
+    - DJANGO=1.6
+    - DJANGO=1.7
+    - DJANGO=1.8
 
 matrix:
   exclude:
-    - python: 3.3
-      env: DJANGO=1.4
-    - python: 3.3
-      env: DJANGO=1.5
-    - python: 3.3
+    - python: 3.4
       env: DJANGO=1.6
+    - python: 3.5
+      env: DJANGO=1.6
+    - python: 3.5
+      env: DJANGO=1.7
   include:
+    - python: 2.7
+      env: DJANGO=1.4
+    - python: 2.7
+      env: DJANGO=1.5
     - python: 2.7
       env: FLAKE8=1
 
@@ -29,9 +35,8 @@ before_install:
   - if [ -z "$DJANGO" ]; then export DJANGO=1.6; fi
 
 install:
-  - pip install -q Django==$DJANGO --use-mirrors
-  - pip install -r requirements.txt --use-mirrors
-  - pip install flake8 --use-mirrors
+  - pip install -q Django==$DJANGO
+  - pip install -r requirements.txt
 
 script:
-  - if [ -z "$FLAKE8" ]; then ./runtests.py; else flake8; fi
+  - if [ -z "$FLAKE8" ]; then ./runtests.py; else pip install flake8 && flake8; fi
