@@ -212,32 +212,44 @@ class ImportDiffGenerator(object):
                       file_mappings,
                       instance=None):
 
-        if not instance:
-            return dict(((k, [v]) for k, v in row.data.iteritems()))
-
         changes = {}
-
         column_names = [mapping.column_name for mapping in file_mappings]
-        old_values = self.object_resolver.resolve_export_values(instance,
-                                                                column_names)
 
-        for old_value in old_values.list:
-            mapping = old_value.mapping
-            old_val_str = old_value.get_string()
+        if instance:
+            old_values = self.object_resolver.resolve_export_values(
+                instance, column_names
+            )
+
+        for mapping in file_mappings:
+            if mapping.readonly:
+                continue
+
+            changed = instance is None
+            change = []
+
             new_val = resolved_values.dict[mapping.field_name]
             new_val_str = new_val.get_string()
 
-            if mapping.readonly or old_val_str == new_val_str:
-                continue
+            if instance:
+                old_val = old_values.dict[mapping.field_name]
+                old_val_str = old_val.get_string()
+
+                if old_val_str == new_val_str:
+                    continue
+
+                changed = True
+
+                change.append(old_val_str)
+
+            change.append(new_val_str)
 
             if (mapping.is_foreign_key and
+                    new_val.value and
                     not new_val.exclude_from_model_validation):
-                changes[mapping.column_name] = [old_val_str,
-                                                new_val_str,
-                                                new_val.value.pk]
-            else:
-                changes[mapping.column_name] = [old_val_str,
-                                                new_val_str]
+                change.append(new_val.value.pk)
+
+            if changed:
+                changes[mapping.column_name] = change
 
         return changes if changes else None
 
