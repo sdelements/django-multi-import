@@ -11,9 +11,7 @@ class ImportDiffApplier(object):
     def get_object_for_update(self, obj_id):
         return self.queryset.get(pk=obj_id)
 
-    def get_obj_changes_dict(self, attributes, obj, update=False):
-        result = {}
-
+    def get_object_changes(self, attributes, obj, update=False):
         for attribute, values in zip(attributes, obj['attributes']):
             if update and len(values) == 1:
                 # Skip this attribute - no change
@@ -38,34 +36,51 @@ class ImportDiffApplier(object):
                         for val in value.split(',')
                     ]
 
-            result[attribute] = value
-
-        return result
+            yield mapping, value
 
     def create_object(self, obj_data):
         instance = self.model(**obj_data)
         instance.full_clean()
         instance.save()
+        return instance
 
-    def apply_diff(self, diff_data):
-        new_objects = diff_data.get('new_objects', [])
-        updated_objects = diff_data.get('updated_objects', [])
-        diff_attributes = diff_data['attributes']
-
+    def process_new_objects(self, diff_attributes, new_objects):
         for new_object in new_objects:
-            obj_data = self.get_obj_changes_dict(diff_attributes, new_object)
-            self.create_object(obj_data)
+            changes = self.get_object_changes(diff_attributes, new_object)
 
+            data = {
+                mapping.field_name: value
+                for mapping, value in changes
+                if mapping.model_init
+            }
+
+            instance = self.create_object(data)
+
+            for mapping, value in changes:
+                if mapping.is_one_to_many:
+                    object_manager = getattr(instance, mapping.field_name)
+                    object_manager.clear()
+                    for val in value:
+                        object_manager.add(val)
+
+    def process_updated_objects(self, diff_attributes, updated_objects):
         for updated_object in updated_objects:
             obj = self.get_object_for_update(updated_object['id'])
 
-            changes = self.get_obj_changes_dict(diff_attributes,
-                                                updated_object,
-                                                update=True)
+            changes = self.get_object_changes(diff_attributes,
+                                              updated_object,
+                                              update=True)
 
-            if changes:
-                for attribute_name, new_value in changes.iteritems():
-                    setattr(obj, attribute_name, new_value)
+            for mapping, value in changes:
+                setattr(obj, mapping.field_name, value)
 
-                obj.full_clean()
-                obj.save()
+            obj.full_clean()
+            obj.save()
+
+    def apply_diff(self, diff_data):
+        diff_attributes = diff_data['attributes']
+        new_objects = diff_data.get('new_objects', [])
+        updated_objects = diff_data.get('updated_objects', [])
+
+        self.process_new_objects(diff_attributes, new_objects)
+        self.process_updated_objects(diff_attributes, updated_objects)
