@@ -10,6 +10,9 @@ python:
   - 3.5
 
 env:
+  global:
+    - DEFAULT_PYTHON=2.7
+    - DEFAULT_DJANGO=1.8
   matrix:
     - DJANGO=1.6
     - DJANGO=1.7
@@ -32,11 +35,19 @@ matrix:
       env: FLAKE8=1
 
 before_install:
-  - if [ -z "$DJANGO" ]; then export DJANGO=1.6; fi
+  - if [ -z "$DJANGO" ]; then export DJANGO=$DEFAULT_DJANGO; fi
+  - if [[ -z "$FLAKE8" && $TRAVIS_PYTHON_VERSION == $DEFAULT_PYTHON && $DJANGO == $DEFAULT_DJANGO ]]; then export COVERAGE=1; fi
 
 install:
   - pip install -q Django==$DJANGO
   - pip install -r requirements.txt
+  - if [[ $FLAKE8 ]]; then pip install flake8; fi
+  - if [[ $COVERAGE ]]; then pip install coverage==3.7.1 python-coveralls; fi
 
 script:
-  - if [ -z "$FLAKE8" ]; then ./runtests.py; else pip install flake8 && flake8; fi
+  - if [[ $FLAKE8 ]]; then flake8; fi
+  - if [[ $COVERAGE ]]; then coverage run --source=multi_import runtests.py; fi
+  - if [[ -z "$FLAKE8" && -z "$COVERAGE" ]]; then ./runtests.py; fi
+
+after_success:
+  - if [[ $COVERAGE ]]; then coveralls; fi
