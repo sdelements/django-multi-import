@@ -132,7 +132,7 @@ class ImportDiffGenerator(object):
                 value = int(value)
 
             if not isinstance(value, string_types):
-                value = str(value)
+                value = unicode(value)
 
             data[key] = normalize_string(value)
         return data

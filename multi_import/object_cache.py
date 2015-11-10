@@ -19,7 +19,7 @@ class ObjectCache(defaultdict):
             return
 
         lookup_dict = self[field]
-        key = str(value)
+        key = unicode(value)
 
         lookup_dict[key].add(instance)
 
@@ -28,7 +28,7 @@ class ObjectCache(defaultdict):
             return None
 
         lookup_dict = self[field]
-        key = str(value)
+        key = unicode(value)
 
         instance_set = lookup_dict[key]
         if not instance_set:

@@ -33,7 +33,7 @@ class ResolvedValue(object):
 
         elif self.mapping.is_one_to_many:
             values = [
-                str(self._get_related_value(item)) for item in self.value
+                unicode(self._get_related_value(item)) for item in self.value
             ]
             value = ",".join(values)
 
