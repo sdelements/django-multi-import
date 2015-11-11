@@ -99,22 +99,18 @@ class ValueResolver(object):
                 return ResolvedValue(self.mapping, False)
         return ResolvedValue(self.mapping, None)
 
-    def get_foreign_key_queryset(self):
-        return self.mapping.related_object_descriptor.get_queryset()
+    def get_queryset(self):
+        return self.mapping.related_model.objects.all()
 
     def get_foreign_key_value(self, field_value, new_object_refs):
         if not field_value:
             return ResolvedValue(self.mapping, None)
 
-        queryset = self.get_foreign_key_queryset()
-        error, value, exclude = self.lookup_related(queryset,
+        error, value, exclude = self.lookup_related(self.get_queryset(),
                                                     field_value,
                                                     new_object_refs)
         errors = [error] if error else []
         return ResolvedValue(self.mapping, value, errors, exclude)
-
-    def get_one_to_many_queryset(self):
-        return self.mapping.related_model.objects
 
     def get_one_to_many_value(self, field_value, new_object_refs):
         if not field_value:
@@ -122,10 +118,9 @@ class ValueResolver(object):
 
         errors = []
         values = []
-        queryset = self.get_one_to_many_queryset()
 
         for val in field_value.split(','):
-            error, value, exclude = self.lookup_related(queryset,
+            error, value, exclude = self.lookup_related(self.get_queryset(),
                                                         val.strip(),
                                                         new_object_refs)
             if error:
