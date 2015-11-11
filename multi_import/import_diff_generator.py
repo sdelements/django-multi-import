@@ -202,7 +202,7 @@ class ImportDiffGenerator(object):
             instance = self.model(**model_data)
             instance.full_clean(exclude=exclude, validate_unique=False)
 
-        except ValidationError as e:
+        except (ValidationError, ValueError) as e:
             for field_name, errors in e.error_dict.iteritems():
                 column_name = self.field_mappings[field_name].column_name
                 model_errors.extend(
