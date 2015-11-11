@@ -2,7 +2,6 @@ class ImportDiffApplier(object):
     """
     Applies a diff JSON object.
     """
-
     def __init__(self, model, mappings, queryset):
         self.model = model
         self.mappings = mappings
@@ -12,6 +11,7 @@ class ImportDiffApplier(object):
         return self.queryset.get(pk=obj_id)
 
     def get_object_changes(self, attributes, obj, update=False):
+        changes = []
         for attribute, values in zip(attributes, obj['attributes']):
             if update and len(values) == 1:
                 # Skip this attribute - no change
@@ -35,7 +35,8 @@ class ImportDiffApplier(object):
                     for val in value.split(',')
                 ]
 
-            yield mapping, value
+            changes.append((mapping, value))
+        return changes
 
     def create_object(self, obj_data):
         instance = self.model(**obj_data)
