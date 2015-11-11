@@ -113,7 +113,7 @@ class ValueResolverTests(TestCase):
         xavier.save()
         ella_grace.save()
 
-        children = '{0},{1},{2}'.format(hadrien.pk, xavier.pk, ella_grace.pk)
+        children = '{0};{1};{2}'.format(hadrien.pk, xavier.pk, ella_grace.pk)
         data = {'children': children}
 
         value_resolver = self.get_value_resolver('children')
@@ -137,7 +137,7 @@ class ValueResolverTests(TestCase):
         self.assertEqual([], resolved_value.value)
 
     def test_import_one_to_many_do_not_exist_2(self):
-        data = {'children': '6,4'}
+        data = {'children': '6;4'}
 
         value_resolver = self.get_value_resolver('children')
         resolved_value = value_resolver.resolve_import_value(data)

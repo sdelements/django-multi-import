@@ -11,12 +11,14 @@ class Mapping(object):
                  column_name,
                  field_name=None,
                  readonly=False,
-                 lookup_fields=None):
+                 lookup_fields=None,
+                 list_separator=';'):
 
         self.column_name = column_name
         self.field_name = field_name or column_name
         self.readonly = readonly
         self.lookup_fields = lookup_fields or ()
+        self.list_separator = list_separator
 
 
 class BoundMapping(Mapping):
@@ -32,7 +34,8 @@ class BoundMapping(Mapping):
         super(BoundMapping, self).__init__(mapping.column_name,
                                            mapping.field_name,
                                            mapping.readonly,
-                                           lookup_fields)
+                                           lookup_fields,
+                                           mapping.list_separator)
 
         self.model = model
         self.field = None

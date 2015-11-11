@@ -35,7 +35,7 @@ class ResolvedValue(object):
             values = [
                 unicode(self._get_related_value(item)) for item in self.value
             ]
-            value = ",".join(values)
+            value = self.mapping.list_separator.join(values)
 
         else:
             value = self.value
@@ -119,7 +119,7 @@ class ValueResolver(object):
         errors = []
         values = []
 
-        for val in field_value.split(','):
+        for val in field_value.split(self.mapping.list_separator):
             error, value, exclude = self.lookup_related(self.get_queryset(),
                                                         val.strip(),
                                                         new_object_refs)
