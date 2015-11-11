@@ -186,6 +186,7 @@ class ImportDiffGenerator(object):
         and runs full_clean() to validate.
         """
         model_errors = []
+        field_errors = []
 
         model_data = {
             key: value.value
@@ -202,14 +203,17 @@ class ImportDiffGenerator(object):
             instance = self.model(**model_data)
             instance.full_clean(exclude=exclude, validate_unique=False)
 
-        except (ValidationError, ValueError) as e:
+        except ValueError as e:
+            model_errors.append(e.message)
+
+        except ValidationError as e:
             for field_name, errors in e.error_dict.iteritems():
                 column_name = self.field_mappings[field_name].column_name
-                model_errors.extend(
+                field_errors.extend(
                     [(column_name, error.messages) for error in errors]
                 )
 
-        return instance, model_errors
+        return instance, model_errors, field_errors
 
     def get_diff_data(self,
                       row,
@@ -322,9 +326,14 @@ class ImportDiffGenerator(object):
                     result.add_row_errors(row, errors, mapping.column_name)
                 continue
 
-            new_obj, model_errors = self.run_model_validation(resolved_values)
-            if model_errors:
-                for column_name, messages in model_errors:
+            new_obj, errors, field_errors = self.run_model_validation(
+                resolved_values
+            )
+
+            if errors or field_errors:
+                if errors:
+                    result.add_row_errors(row, errors)
+                for column_name, messages in field_errors:
                     result.add_row_errors(row, messages, column_name)
                 continue
 
