@@ -85,7 +85,7 @@ class CsvFormat(FileFormat):
 class FileReadWriter(object):
     file_formats = (
         FileFormat(xlsx),
-        FileFormat(xls),
+        FileFormat(xls, read_file_as_string=True),
         CsvFormat(),
     )
 
