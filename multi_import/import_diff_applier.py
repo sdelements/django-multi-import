@@ -13,7 +13,10 @@ class ImportDiffApplier(object):
     def get_object_changes(self, attributes, obj, update=False):
         changes = []
         for attribute, values in zip(attributes, obj['attributes']):
-            if update and len(values) == 1:
+            num_values = len(values)
+            required_values = 3 if update else 2
+
+            if update and num_values == 1:
                 # Skip this attribute - no change
                 continue
 
@@ -27,13 +30,17 @@ class ImportDiffApplier(object):
                 if mapping.field_name == attribute
             ))
 
-            if mapping.is_foreign_key:
-                value = mapping.related_model.objects.get(pk=value)
-            if mapping.is_one_to_many:
-                value = [
-                    mapping.related_model.objects.get(pk=val)
-                    for val in value.split(',')
-                ]
+            if mapping.is_relationship and num_values == required_values:
+                # TODO: Add support for new object refs
+                if mapping.is_foreign_key:
+                    if value:
+                        value = mapping.related_model.objects.get(pk=value)
+
+                if mapping.is_one_to_many:
+                    value = [
+                        mapping.related_model.objects.get(pk=val)
+                        for val in value
+                    ]
 
             changes.append((mapping, value))
         return changes

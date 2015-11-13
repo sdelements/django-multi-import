@@ -252,10 +252,21 @@ class ImportDiffGenerator(object):
 
             change.append(new_val_str)
 
-            if (mapping.is_foreign_key and
-                    new_val.value and
-                    not new_val.exclude_from_model_validation):
-                change.append(new_val.value.pk)
+            # TODO: Add handling for new object refs - they don't have a PK
+
+            if mapping.is_foreign_key:
+                if not new_val.value:
+                    change.append(None)
+                elif new_val.value.pk:
+                    change.append(new_val.value.pk)
+
+            if mapping.is_one_to_many:
+                if new_val.value:
+                    change.append(
+                        [item.pk for item in new_val.value if item.pk]
+                    )
+                else:
+                    change.append([])
 
             if changed:
                 changes[mapping.column_name] = change
