@@ -221,7 +221,8 @@ class ImportDiffGenerator(object):
                       file_mappings,
                       instance=None):
 
-        changes = {}
+        data = {}
+        has_changes = False
         column_names = [mapping.column_name for mapping in file_mappings]
 
         if instance:
@@ -230,11 +231,9 @@ class ImportDiffGenerator(object):
             )
 
         for mapping in file_mappings:
-            if mapping.readonly:
-                continue
 
-            changed = instance is None
-            change = []
+            field_changed = instance is None and not mapping.readonly
+            field_data = []
 
             new_val = resolved_values.dict[mapping.field_name]
             new_val_str = new_val.get_string()
@@ -243,35 +242,37 @@ class ImportDiffGenerator(object):
                 old_val = old_values.dict[mapping.field_name]
                 old_val_str = old_val.get_string()
 
-                if old_val_str == new_val_str:
-                    continue
+                if not mapping.readonly and old_val_str != new_val_str:
+                    field_changed = True
 
-                changed = True
+                field_data.append(old_val_str)
 
-                change.append(old_val_str)
+            if not mapping.readonly or not instance:
+                field_data.append(new_val_str)
 
-            change.append(new_val_str)
+            if field_changed:
+                # TODO: Add handling for new object refs - they don't have a PK
 
-            # TODO: Add handling for new object refs - they don't have a PK
+                if mapping.is_foreign_key:
+                    if not new_val.value:
+                        field_data.append(None)
+                    elif new_val.value.pk:
+                        field_data.append(new_val.value.pk)
 
-            if mapping.is_foreign_key:
-                if not new_val.value:
-                    change.append(None)
-                elif new_val.value.pk:
-                    change.append(new_val.value.pk)
+                if mapping.is_one_to_many:
+                    if new_val.value:
+                        field_data.append(
+                            [item.pk for item in new_val.value if item.pk]
+                        )
+                    else:
+                        field_data.append([])
 
-            if mapping.is_one_to_many:
-                if new_val.value:
-                    change.append(
-                        [item.pk for item in new_val.value if item.pk]
-                    )
-                else:
-                    change.append([])
+            data[mapping.column_name] = field_data
 
-            if changed:
-                changes[mapping.column_name] = change
+            if field_changed:
+                has_changes = True
 
-        return changes if changes else None
+        return data if has_changes else None
 
     def add_to_diff_result(self,
                            result,

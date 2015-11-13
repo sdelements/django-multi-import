@@ -30,8 +30,14 @@ class ImportDiffApplier(object):
                 if mapping.field_name == attribute
             ))
 
-            if mapping.is_relationship and num_values == required_values:
+            if mapping.readonly:
+                continue
+
+            if mapping.is_relationship:
                 # TODO: Add support for new object refs
+                if num_values != required_values:
+                    continue
+
                 if mapping.is_foreign_key:
                     if value:
                         value = mapping.related_model.objects.get(pk=value)
