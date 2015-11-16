@@ -1,5 +1,7 @@
 from django.core.exceptions import MultipleObjectsReturned, ValidationError
 from six import string_types
+from tablib.compat import unicode
+
 from multi_import.object_cache import CachedQuery, ObjectCache
 from multi_import.utils import normalize_string
 

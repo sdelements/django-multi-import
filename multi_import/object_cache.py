@@ -1,6 +1,7 @@
 from collections import defaultdict
 
 from django.core.exceptions import MultipleObjectsReturned
+from tablib.compat import unicode
 
 
 class ObjectCache(defaultdict):

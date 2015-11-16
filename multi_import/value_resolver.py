@@ -2,6 +2,7 @@ from django.core.exceptions import (FieldError,
                                     MultipleObjectsReturned,
                                     ObjectDoesNotExist)
 from django.db.models import BooleanField
+from tablib.compat import unicode
 
 from multi_import.utils import normalize_string
 
