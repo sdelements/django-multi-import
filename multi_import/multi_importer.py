@@ -1,3 +1,6 @@
+from multi_import.object_cache import ObjectCache
+
+
 class InvalidDatasetError(Exception):
     pass
 
@@ -86,7 +89,6 @@ class MultiImportExporter(object):
         return results
 
     def identify_dataset(self, filename, dataset):
-        results = {}
         models = (
             importer.model for importer in self.import_exporters
             if importer.id_column in dataset.headers
@@ -95,22 +97,24 @@ class MultiImportExporter(object):
         if not model:
             raise InvalidDatasetError(self.error_messages['invalid_key'])
 
-        results[model] = (filename, dataset)
-        return results
+        return model, (filename, dataset)
+
+    def get_new_object_cache(self):
+        cache = {}
+        for importer in self.import_exporters:
+            cache[importer.model] = ObjectCache(importer.lookup_fields)
+        return cache
 
     def import_datasets(self, datasets):
         results = MultiImportResult()
 
-        new_objects_refs = {}
+        new_obj_refs = self.get_new_object_cache()
 
         for importer in self.import_exporters:
-            filename, dataset = datasets.get(importer.model, (None, None))
-            if not filename:
-                continue
-
-            result = importer.generate_import_diff(dataset, new_objects_refs)
-            new_objects_refs[result.model] = result.new_object_refs
-            results.add_result(filename, result)
+            for file_data in datasets.get(importer.model, []):
+                filename, data = file_data
+                result = importer.generate_import_diff(data, new_obj_refs)
+                results.add_result(filename, result)
 
         return results
 

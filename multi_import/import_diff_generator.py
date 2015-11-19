@@ -2,7 +2,7 @@ from django.core.exceptions import MultipleObjectsReturned, ValidationError
 from six import string_types
 from tablib.compat import unicode
 
-from multi_import.object_cache import CachedQuery, ObjectCache
+from multi_import.object_cache import CachedQuery
 from multi_import.utils import normalize_string
 
 
@@ -22,7 +22,6 @@ class ImportResult(object):
             'new_objects': [],
             'unchanged_objects': 0
         }
-        self.new_object_refs = ObjectCache(lookup_fields)
 
     @property
     def valid(self):
@@ -55,7 +54,6 @@ class ImportResult(object):
             ]
         }
         self.diff['new_objects'].append(new_dict)
-        self.new_object_refs.cache_instance(instance)
 
     def add_updated_object(self, attributes, line_number, row_number, id):
         new_dict = {
@@ -280,7 +278,8 @@ class ImportDiffGenerator(object):
                            file_mappings,
                            row,
                            data,
-                           instance):
+                           instance,
+                           new_object_cache):
 
         if instance.pk:
             changes = self.get_diff_data(row, data, file_mappings, instance)
@@ -299,10 +298,9 @@ class ImportDiffGenerator(object):
                                   row.row_number,
                                   instance)
 
-    def generate_import_diff(self, dataset, new_object_refs=None):
-        if new_object_refs is None:
-            new_object_refs = {}
+            new_object_cache.cache_instance(instance)
 
+    def generate_import_diff(self, dataset, new_object_refs):
         file_mappings = [
             mapping for mapping in self.mappings
             if mapping.column_name in dataset.headers
@@ -350,10 +348,12 @@ class ImportDiffGenerator(object):
                     result.add_row_errors(row, messages, column_name)
                 continue
 
+            new_object_cache = new_object_refs.get(self.model, None)
             self.add_to_diff_result(result,
                                     file_mappings,
                                     row,
                                     resolved_values,
-                                    instance or new_obj)
+                                    instance or new_obj,
+                                    new_object_cache)
 
         return result

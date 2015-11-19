@@ -118,7 +118,7 @@ class ImportExportManager(object):
         exporter = self.get_exporter()
         return exporter.export_dataset(template)
 
-    def generate_import_diff(self, dataset, new_object_refs=None):
+    def generate_import_diff(self, dataset, new_object_refs):
         import_diff_generator = self.get_import_diff_generator()
         return import_diff_generator.generate_import_diff(dataset,
                                                           new_object_refs)

@@ -185,9 +185,12 @@ class MultiFileImportExporter(MultiImportExporter):
         data = {}
         for filename, fp in files.iteritems():
             try:
-                dataset_item = self.read_file(fp)
-                data_item = self.identify_dataset(filename, dataset_item)
-                data.update(data_item)
+                dataset = self.read_file(fp)
+                model, data_item = self.identify_dataset(filename, dataset)
+                if model in data:
+                    data[model].append(data_item)
+                else:
+                    data[model] = [data_item]
             except(InvalidDatasetError, InvalidFileError) as e:
                 results.add_error(filename, e.message)
 
