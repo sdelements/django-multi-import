@@ -249,11 +249,9 @@ class ImportDiffGenerator(object):
 
                 field_data.append(old_val_str)
 
-            if not mapping.readonly or not instance:
-                field_data.append(new_val_str)
-
             if field_changed:
                 # TODO: Add handling for new object refs - they don't have a PK
+                field_data.append(new_val_str)
 
                 if mapping.is_foreign_key:
                     if not new_val.value:
