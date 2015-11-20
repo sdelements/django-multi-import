@@ -187,6 +187,7 @@ class ImportDiffGenerator(object):
         Instantiates a model using the resolved values,
         and runs full_clean() to validate.
         """
+        instance = None
         model_errors = []
         field_errors = []
 
