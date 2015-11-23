@@ -16,7 +16,7 @@ class ImportDiffApplier(object):
             num_values = len(values)
             required_values = 3 if update else 2
 
-            if update and num_values == 1:
+            if num_values == 0 or update and num_values == 1:
                 # Skip this attribute - no change
                 continue
 
