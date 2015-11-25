@@ -22,24 +22,12 @@ class ImportExportManager(object):
     import_diff_applier = ImportDiffApplier
 
     def __init__(self):
-        self.column_mappings = {}
-        self.field_mappings = {}
         self.bind_mappings(list(self.mappings))
 
     def bind_mappings(self, mappings):
         self.mappings = BoundMapping.bind_mappings(
             mappings, self.model, self.default_related_lookup_fields
         )
-        self.column_mappings = {
-            mapping.column_name: mapping for mapping in self.mappings
-        }
-        self.field_mappings = {
-            mapping.field_name: mapping for mapping in self.mappings
-        }
-
-    @property
-    def writable_mappings(self):
-        return [mapping for mapping in self.mappings if not mapping.readonly]
 
     @property
     def dependencies(self):
@@ -47,7 +35,7 @@ class ImportExportManager(object):
         Returns a list of related models that this importer is dependent on.
         """
         return [
-            mapping.related_model for mapping in self.writable_mappings
+            mapping.related_model for mapping in self.mappings.writable
             if mapping.is_relationship
         ]
 
@@ -74,7 +62,6 @@ class ImportExportManager(object):
             'key': self.key,
             'model': self.model,
             'mappings': self.mappings,
-            'field_mappings': self.field_mappings,
             'lookup_fields': self.lookup_fields,
             'queryset': self.get_import_queryset(),
             'object_resolver': self.get_object_resolver()

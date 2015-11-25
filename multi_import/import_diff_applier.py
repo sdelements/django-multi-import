@@ -25,10 +25,7 @@ class ImportDiffApplier(object):
             if not value:
                 continue
 
-            mapping = next((
-                mapping for mapping in self.mappings
-                if mapping.field_name == attribute
-            ))
+            mapping = self.mappings.fields[attribute]
 
             if mapping.readonly:
                 continue

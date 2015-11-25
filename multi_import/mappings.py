@@ -1,5 +1,6 @@
 from django.db.models import FieldDoesNotExist
 from django.db.models.fields.related import ReverseManyRelatedObjectsDescriptor
+from django.utils.functional import cached_property
 
 
 class Mapping(object):
@@ -19,6 +20,33 @@ class Mapping(object):
         self.readonly = readonly
         self.lookup_fields = lookup_fields or ()
         self.list_separator = list_separator
+
+
+class MappingCollection(tuple):
+
+    @cached_property
+    def columns(self):
+        return {mapping.column_name: mapping for mapping in self}
+
+    @cached_property
+    def fields(self):
+        return {mapping.field_name: mapping for mapping in self}
+
+    @cached_property
+    def column_names(self):
+        return [mapping.column_name for mapping in self]
+
+    @cached_property
+    def writable(self):
+        return MappingCollection([
+            mapping for mapping in self if not mapping.readonly
+        ])
+
+    def filter_by_columns(self, column_names):
+        return MappingCollection([
+            mapping for mapping in self
+            if mapping.column_name in column_names
+        ])
 
 
 class BoundMapping(Mapping):
@@ -80,7 +108,7 @@ class BoundMapping(Mapping):
 
     @classmethod
     def bind_mappings(cls, mappings, model, default_lookup_fields=None):
-        return [
+        return MappingCollection([
             cls.bind_mapping(mapping, model, default_lookup_fields)
             for mapping in mappings
-        ]
+        ])

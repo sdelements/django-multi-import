@@ -96,7 +96,6 @@ class ImportDiffGenerator(object):
                  key,
                  model,
                  mappings,
-                 field_mappings,
                  lookup_fields,
                  queryset,
                  object_resolver):
@@ -104,7 +103,6 @@ class ImportDiffGenerator(object):
         self.key = key
         self.model = model
         self.mappings = mappings
-        self.field_mappings = field_mappings
         self.lookup_fields = lookup_fields
         self.queryset = queryset
         self.object_resolver = object_resolver
@@ -112,10 +110,6 @@ class ImportDiffGenerator(object):
 
     def can_update_object(self, instance):
         return True
-
-    @property
-    def writable_mappings(self):
-        return [mapping for mapping in self.mappings if not mapping.readonly]
 
     def get_cached_query(self):
         return CachedQuery(self.queryset, self.lookup_fields)
@@ -209,7 +203,7 @@ class ImportDiffGenerator(object):
 
         except ValidationError as e:
             for field_name, errors in e.error_dict.iteritems():
-                column_name = self.field_mappings[field_name].column_name
+                column_name = self.mappings.fields[field_name].column_name
                 field_errors.extend(
                     [(column_name, error.messages) for error in errors]
                 )
@@ -301,10 +295,7 @@ class ImportDiffGenerator(object):
             new_object_cache.cache_instance(instance)
 
     def generate_import_diff(self, dataset, new_object_refs):
-        file_mappings = [
-            mapping for mapping in self.mappings
-            if mapping.column_name in dataset.headers
-        ]
+        file_mappings = self.mappings.filter_by_columns(dataset.headers)
 
         result = ImportResult(self.key,
                               self.model,

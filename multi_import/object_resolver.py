@@ -29,10 +29,7 @@ class ObjectResolver(object):
 
     def get_value_resolvers(self, columns=None):
         if columns:
-            mappings = [
-                mapping for mapping in self.mappings
-                if mapping.column_name in columns
-            ]
+            mappings = self.mappings.filter_by_columns(columns)
         else:
             mappings = self.mappings
 
