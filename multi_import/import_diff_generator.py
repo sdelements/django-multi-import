@@ -1,8 +1,10 @@
-from django.core.exceptions import MultipleObjectsReturned, ValidationError
+from django.core.exceptions import MultipleObjectsReturned
 from six import string_types
 from tablib.compat import unicode
 
 from multi_import.object_cache import CachedQuery
+from multi_import.fields import empty
+from multi_import.relations import ManyRelatedField, RelatedField
 from multi_import.utils import normalize_string
 
 
@@ -11,13 +13,13 @@ class ImportResult(object):
     Results from an attempt to generate an import diff.
     Contains a list of errors, or if successful, a diff object.
     """
-    def __init__(self, model_key, model, mappings, lookup_fields):
+    def __init__(self, model_key, model, column_names, field_names):
         self.model = model
         self.errors = []
         self.diff = {
             'model': model_key,
-            'attributes': [mapping.field_name for mapping in mappings],
-            'column_names': [mapping.column_name for mapping in mappings],
+            'attributes': field_names,
+            'column_names': column_names,
             'updated_objects': [],
             'new_objects': [],
             'unchanged_objects': 0
@@ -44,7 +46,7 @@ class ImportResult(object):
         for message in messages:
             self.add_row_error(row, message, column_name)
 
-    def add_new_object(self, attributes, line_number, row_number, instance):
+    def add_new_object(self, attributes, line_number, row_number):
         new_dict = {
             'line_number': line_number,
             'row_number': row_number,
@@ -95,18 +97,21 @@ class ImportDiffGenerator(object):
     def __init__(self,
                  key,
                  model,
-                 mappings,
                  lookup_fields,
                  queryset,
-                 object_resolver):
+                 serializer_factory):
 
         self.key = key
         self.model = model
-        self.mappings = mappings
         self.lookup_fields = lookup_fields
         self.queryset = queryset
-        self.object_resolver = object_resolver
+        self.serializer_factory = serializer_factory
         self.cached_query = self.get_cached_query()
+
+    def get_serializer_context(self, new_object_cache=None):
+        return {
+            'new_object_cache': new_object_cache
+        }
 
     def can_update_object(self, instance):
         return True
@@ -151,159 +156,104 @@ class ImportDiffGenerator(object):
             ])
             yield Row(row_number, line_number, row_data)
 
-    def row_has_no_changes(self, file_mappings, row, instance):
-        """
-        Compares the imported values to a database instance,
-        returns True if there are no changes.
-        """
-        if not instance:
-            return False
-
-        resolver = self.object_resolver
-        columns = row.data.keys()
-        resolved_values = resolver.resolve_export_values(instance,
-                                                         columns)
-        imported_dict = {
-            mapping.field_name: row.data[mapping.column_name]
-            for mapping in file_mappings
-        }
-        model_dict = {
-            key: value.get_string()
-            for key, value in resolved_values.dict.iteritems()
-        }
-
-        return dict(imported_dict) == dict(model_dict)
-
-    def run_model_validation(self, resolved_values):
-        """
-        Instantiates a model using the resolved values,
-        and runs full_clean() to validate.
-        """
-        instance = None
-        model_errors = []
-        field_errors = []
-
-        model_data = {
-            key: value.value
-            for key, value in resolved_values.dict.iteritems()
-            if value.mapping.model_init and not value.errors
-        }
-
-        exclude = [
-            key for key, value in resolved_values.dict.iteritems()
-            if value.exclude_from_model_validation
-        ]
-
-        try:
-            instance = self.model(**model_data)
-            instance.full_clean(exclude=exclude, validate_unique=False)
-
-        except ValueError as e:
-            model_errors.append(e.message)
-
-        except ValidationError as e:
-            for field_name, errors in e.error_dict.iteritems():
-                column_name = self.mappings.fields[field_name].column_name
-                field_errors.extend(
-                    [(column_name, error.messages) for error in errors]
-                )
-
-        return instance, model_errors, field_errors
-
-    def get_diff_data(self,
-                      row,
-                      resolved_values,
-                      file_mappings,
-                      instance=None):
+    def get_diff_data(self, dataset, row, serializer):
 
         data = {}
         has_changes = False
-        column_names = [mapping.column_name for mapping in file_mappings]
-
+        instance = serializer.instance
         if instance:
-            old_values = self.object_resolver.resolve_export_values(
-                instance, column_names
-            )
+            orig = serializer.to_representation(instance)
+        validated_data = serializer.validated_data
 
-        for mapping in file_mappings:
+        for column_name in dataset.headers:
+            field = serializer.fields.get(column_name, None)
+            if not field:
+                continue
 
-            field_changed = instance is None and not mapping.readonly
+            field_changed = instance is None and not field.read_only
             field_data = []
 
-            new_val = resolved_values.dict[mapping.field_name]
-            new_val_str = new_val.get_string()
+            # validated_data disregards read-only attributes
+            if field.read_only:
+                if instance:
+                    new_value = orig[column_name]
+                else:
+                    new_value = row.data.get(column_name, None)
+                new_representation = new_value
+            else:
+                new_value = validated_data.get(field.source, None)
+                new_representation = field.to_representation(new_value)
 
             if instance:
-                old_val = old_values.dict[mapping.field_name]
-                old_val_str = old_val.get_string()
 
-                if not mapping.readonly and old_val_str != new_val_str:
+                old_representation = orig[column_name]
+
+                if (not field.read_only and
+                        new_value is not empty and
+                        old_representation != new_representation):
                     field_changed = True
 
-                field_data.append(old_val_str)
+                field_data.append(
+                    field.to_string_representation(old_representation)
+                )
 
             if field_changed:
                 # TODO: Add handling for new object refs - they don't have a PK
-                field_data.append(new_val_str)
 
-                if mapping.is_foreign_key:
-                    if not new_val.value:
+                field_data.append(
+                    field.to_string_representation(new_representation)
+                )
+
+                if isinstance(field, RelatedField):
+                    if not new_value or new_value is empty:
                         field_data.append(None)
-                    elif new_val.value.pk:
-                        field_data.append(new_val.value.pk)
+                    elif new_value.pk:
+                        field_data.append(new_value.pk)
 
-                if mapping.is_one_to_many:
-                    if new_val.value:
+                if isinstance(field, ManyRelatedField):
+                    if new_value and new_value is not empty:
                         field_data.append(
-                            [item.pk for item in new_val.value if item.pk]
+                            [item.pk for item in new_value if item.pk]
                         )
                     else:
                         field_data.append([])
 
-            data[mapping.column_name] = field_data
+            data[column_name] = field_data
 
             if field_changed:
                 has_changes = True
 
         return data if has_changes else None
 
-    def add_to_diff_result(self,
-                           result,
-                           file_mappings,
-                           row,
-                           data,
-                           instance,
-                           new_object_cache):
+    def add_to_diff_result(self, result, dataset, row, serializer):
 
-        if instance.pk:
-            changes = self.get_diff_data(row, data, file_mappings, instance)
+        if serializer.instance:
+            changes = self.get_diff_data(dataset, row, serializer)
             if changes:
                 result.add_updated_object(changes,
                                           row.line_number,
                                           row.row_number,
-                                          instance.pk)
+                                          serializer.instance.pk)
             else:
                 result.increment_unchanged_objects()
 
         else:
-            changes = self.get_diff_data(row, data, file_mappings)
+            changes = self.get_diff_data(dataset, row, serializer)
             result.add_new_object(changes,
                                   row.line_number,
-                                  row.row_number,
-                                  instance)
-
-            new_object_cache.cache_instance(instance)
+                                  row.row_number)
+            serializer.cache_new_object()
 
     def generate_import_diff(self, dataset, new_object_refs):
-        file_mappings = self.mappings.filter_by_columns(dataset.headers)
+
+        file_fields = self.serializer_factory.fields.subset(dataset.headers)
 
         result = ImportResult(self.key,
                               self.model,
-                              file_mappings,
-                              self.lookup_fields)
+                              file_fields.column_names,
+                              file_fields.field_names)
 
         for row in self.enumerate_dataset(dataset):
-
             try:
                 instance = self.lookup_model_object(row)
             except MultipleObjectsReturned:
@@ -311,40 +261,28 @@ class ImportDiffGenerator(object):
                                      self.error_messages['multiple_matches'])
                 continue
 
-            if self.row_has_no_changes(file_mappings, row, instance):
-                result.increment_unchanged_objects()
-                continue
+            data = self.serializer_factory.default.transform_input(row.data)
+            context = self.get_serializer_context(new_object_refs)
+            serializer = self.serializer_factory.get(instance=instance,
+                                                     data=data,
+                                                     context=context)
 
-            if instance and not self.can_update_object(instance):
+            is_valid = serializer.is_valid()
+            update_chk = instance and (serializer.has_changes or not is_valid)
+
+            if update_chk and not self.can_update_object(instance):
                 result.add_row_error(row, self.error_messages['cannot_update'])
                 continue
 
-            resolver = self.object_resolver
-            resolved_values = resolver.resolve_import_values(row.data,
-                                                             new_object_refs)
-
-            if resolved_values.errors:
-                for mapping, errors in resolved_values.errors:
-                    result.add_row_errors(row, errors, mapping.column_name)
-                continue
-
-            new_obj, errors, field_errors = self.run_model_validation(
-                resolved_values
-            )
-
-            if errors or field_errors:
-                if errors:
-                    result.add_row_errors(row, errors)
-                for column_name, messages in field_errors:
+            if not is_valid:
+                for column_name, messages in serializer.errors.iteritems():
                     result.add_row_errors(row, messages, column_name)
                 continue
 
-            new_object_cache = new_object_refs.get(self.model, None)
-            self.add_to_diff_result(result,
-                                    file_mappings,
-                                    row,
-                                    resolved_values,
-                                    instance or new_obj,
-                                    new_object_cache)
+            if not serializer.has_changes:
+                result.increment_unchanged_objects()
+                continue
+
+            self.add_to_diff_result(result, dataset, row, serializer)
 
         return result

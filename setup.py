@@ -45,6 +45,6 @@ setup(
     long_description=read_file('README.rst'),
     test_suite="runtests.runtests",
     zip_safe=False,
-    requires=['django (>=1.4)'],
+    requires=['django (>=1.4)', 'djangorestframework (>=3.0)'],
     install_requires=install_requires
 )

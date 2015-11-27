@@ -1,18 +1,21 @@
+from multi_import.relations import RelatedField, ManyRelatedField
+
+
 class ImportDiffApplier(object):
     """
     Applies a diff JSON object.
     """
-    def __init__(self, model, mappings, queryset):
+    def __init__(self, model, queryset, serializer_factory):
         self.model = model
-        self.mappings = mappings
         self.queryset = queryset
+        self.serializer = serializer_factory.default
 
     def get_object_for_update(self, obj_id):
         return self.queryset.get(pk=obj_id)
 
-    def get_object_changes(self, attributes, obj, update=False):
+    def get_object_changes(self, columns, obj, update=False):
         changes = []
-        for attribute, values in zip(attributes, obj['attributes']):
+        for column_name, values in zip(columns, obj['attributes']):
             num_values = len(values)
             required_values = 3 if update else 2
 
@@ -25,27 +28,31 @@ class ImportDiffApplier(object):
             if not value:
                 continue
 
-            mapping = self.mappings.fields[attribute]
+            field = self.serializer.fields.get(column_name, None)
 
-            if mapping.readonly:
+            if not field:
                 continue
 
-            if mapping.is_relationship:
+            if field.read_only:
+                continue
+
+            if isinstance(field, RelatedField):
                 # TODO: Add support for new object refs
                 if num_values != required_values:
                     continue
+                if value:
+                    value = field.related_model.objects.get(pk=value)
 
-                if mapping.is_foreign_key:
-                    if value:
-                        value = mapping.related_model.objects.get(pk=value)
+            if isinstance(field, ManyRelatedField):
+                # TODO: Add support for new object refs
+                if num_values != required_values:
+                    continue
+                value = [
+                    field.child_relation.related_model.objects.get(pk=val)
+                    for val in value
+                ]
 
-                if mapping.is_one_to_many:
-                    value = [
-                        mapping.related_model.objects.get(pk=val)
-                        for val in value
-                    ]
-
-            changes.append((mapping, value))
+            changes.append((field, value))
         return changes
 
     def create_object(self, obj_data):
@@ -54,49 +61,49 @@ class ImportDiffApplier(object):
         instance.save()
         return instance
 
-    def set_one_to_many(self, instance, mapping, values):
-        object_manager = getattr(instance, mapping.field_name)
+    def set_one_to_many(self, instance, field, values):
+        object_manager = getattr(instance, field.source)
         object_manager.clear()
         for value in values:
             object_manager.add(value)
 
-    def process_new_objects(self, diff_attributes, new_objects):
+    def process_new_objects(self, diff_columns, new_objects):
         for new_object in new_objects:
-            changes = self.get_object_changes(diff_attributes, new_object)
+            changes = self.get_object_changes(diff_columns, new_object)
 
             data = {
-                mapping.field_name: value
-                for mapping, value in changes
-                if mapping.model_init
+                field.source: value
+                for field, value in changes
+                if not isinstance(field, ManyRelatedField)
             }
 
             instance = self.create_object(data)
 
-            for mapping, value in changes:
-                if mapping.is_one_to_many:
-                    self.set_one_to_many(instance, mapping, value)
+            for field, value in changes:
+                if isinstance(field, ManyRelatedField):
+                    self.set_one_to_many(instance, field, value)
 
-    def process_updated_objects(self, diff_attributes, updated_objects):
+    def process_updated_objects(self, diff_columns, updated_objects):
         for updated_object in updated_objects:
             instance = self.get_object_for_update(updated_object['id'])
 
-            changes = self.get_object_changes(diff_attributes,
+            changes = self.get_object_changes(diff_columns,
                                               updated_object,
                                               update=True)
 
-            for mapping, value in changes:
-                if mapping.is_one_to_many:
-                    self.set_one_to_many(instance, mapping, value)
+            for field, value in changes:
+                if isinstance(field, ManyRelatedField):
+                    self.set_one_to_many(instance, field, value)
                 else:
-                    setattr(instance, mapping.field_name, value)
+                    setattr(instance, field.source, value)
 
             instance.full_clean()
             instance.save()
 
     def apply_diff(self, diff_data):
-        diff_attributes = diff_data['attributes']
+        diff_columns = diff_data['column_names']
         new_objects = diff_data.get('new_objects', [])
         updated_objects = diff_data.get('updated_objects', [])
 
-        self.process_new_objects(diff_attributes, new_objects)
-        self.process_updated_objects(diff_attributes, updated_objects)
+        self.process_new_objects(diff_columns, new_objects)
+        self.process_updated_objects(diff_columns, updated_objects)
