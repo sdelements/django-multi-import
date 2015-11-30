@@ -1,5 +1,6 @@
 from django.test import TestCase
-from multi_import.serializers import ModelSerializer, LookupRelatedField
+from multi_import.relations import LookupRelatedField
+from multi_import.serializers import ModelSerializer
 
 from tests.models import Person
 

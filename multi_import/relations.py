@@ -11,7 +11,13 @@ from multi_import.fields import FieldMixin
 __all__ = [
     'MANY_RELATION_KWARGS',
     'ManyRelatedField',
+    'RelatedFieldMixin',
     'RelatedField',
+    'HyperlinkedRelatedField',
+    'HyperlinkedIdentityField',
+    'PrimaryKeyRelatedField',
+    'SlugRelatedField',
+    'StringRelatedField',
     'LookupRelatedField',
 ]
 
@@ -42,7 +48,7 @@ class ManyRelatedField(relations.ManyRelatedField, FieldMixin):
         ]
 
 
-class RelatedField(relations.RelatedField, FieldMixin):
+class RelatedFieldMixin(FieldMixin):
     @classmethod
     def many_init(cls, *args, **kwargs):
         list_kwargs = {'child_relation': cls(*args, **kwargs)}
@@ -54,6 +60,43 @@ class RelatedField(relations.RelatedField, FieldMixin):
     @property
     def related_model(self):
         return self.queryset.model
+
+
+class RelatedField(RelatedFieldMixin, relations.RelatedField):
+    @classmethod
+    def many_init(cls, *args, **kwargs):
+        list_kwargs = {'child_relation': cls(*args, **kwargs)}
+        for key in kwargs.keys():
+            if key in MANY_RELATION_KWARGS:
+                list_kwargs[key] = kwargs[key]
+        return ManyRelatedField(**list_kwargs)
+
+    @property
+    def related_model(self):
+        return self.queryset.model
+
+
+class HyperlinkedRelatedField(RelatedFieldMixin,
+                              relations.HyperlinkedRelatedField):
+    pass
+
+
+class HyperlinkedIdentityField(RelatedFieldMixin,
+                               relations.HyperlinkedIdentityField):
+    pass
+
+
+class PrimaryKeyRelatedField(RelatedFieldMixin,
+                             relations.PrimaryKeyRelatedField):
+    pass
+
+
+class SlugRelatedField(RelatedFieldMixin, relations.SlugRelatedField):
+    pass
+
+
+class StringRelatedField(RelatedFieldMixin, relations.StringRelatedField):
+    pass
 
 
 class LookupRelatedField(RelatedField):

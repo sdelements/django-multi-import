@@ -1,13 +1,12 @@
 from django.db import models
+from rest_framework.compat import DurationField as ModelDurationField
 from rest_framework.serializers import ModelSerializer as DrfModelSerializer
 from rest_framework.utils import model_meta
 import six
 from tablib.compat import unicode
 
 from multi_import import fields
-from multi_import.relations import (LookupRelatedField,
-                                    RelatedField,
-                                    ManyRelatedField)
+from multi_import import relations
 from multi_import.utils import normalize_string
 
 __all__ = [
@@ -53,13 +52,13 @@ class FieldInfo(object):
     def related_fields(self):
         return [
             field for field in self.serializer.fields.values()
-            if isinstance(field, RelatedField)
+            if isinstance(field, relations.RelatedFieldMixin)
         ]
 
     def many_related_fields(self):
         return [
             field for field in self.serializer.fields.values()
-            if isinstance(field, ManyRelatedField)
+            if isinstance(field, relations.ManyRelatedField)
         ]
 
 
@@ -75,8 +74,6 @@ class SerializerFactory(object):
 
 
 class ModelSerializer(DrfModelSerializer):
-    serializer_related_field = LookupRelatedField
-
     serializer_field_mapping = {
         models.AutoField: fields.IntegerField,
         models.BigIntegerField: fields.IntegerField,
@@ -103,11 +100,11 @@ class ModelSerializer(DrfModelSerializer):
         models.GenericIPAddressField: fields.IPAddressField,
         models.FilePathField: fields.FilePathField,
     }
-    # if ModelDurationField is not None:
-    #     serializer_field_mapping[ModelDurationField] = DurationField
-    serializer_related_field = LookupRelatedField
-    # serializer_url_field = HyperlinkedIdentityField
-    # serializer_choice_field = ChoiceField
+    if ModelDurationField is not None:
+        serializer_field_mapping[ModelDurationField] = fields.DurationField
+    serializer_related_field = relations.LookupRelatedField
+    serializer_url_field = relations.HyperlinkedIdentityField
+    serializer_choice_field = fields.ChoiceField
 
     @property
     def new_object_cache(self):

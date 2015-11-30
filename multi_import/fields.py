@@ -7,9 +7,11 @@ __all__ = [
     'FieldMixin',
     'BooleanField',
     'CharField',
+    'ChoiceField',
     'DateField',
     'DateTimeField',
     'DecimalField',
+    'DurationField',
     'EmailField',
     'FileField',
     'FilePathField',
@@ -40,17 +42,14 @@ class FieldMixin(object):
 
 
 class BooleanField(fields.BooleanField, FieldMixin):
-    def from_string_representation(self, value):
-        if value:
-            val = value.lower()
-            if val == 'true' or val == 'yes' or val == '1':
-                return True
-            if val == 'false' or val == 'no' or val == '0':
-                return False
-        return empty
+    pass
 
 
 class CharField(fields.CharField, FieldMixin):
+    pass
+
+
+class ChoiceField(fields.ChoiceField, FieldMixin):
     pass
 
 
@@ -63,6 +62,10 @@ class DateTimeField(fields.DateTimeField, FieldMixin):
 
 
 class DecimalField(fields.DecimalField, FieldMixin):
+    pass
+
+
+class DurationField(fields.DurationField, FieldMixin):
     pass
 
 
@@ -99,14 +102,7 @@ class ModelField(fields.ModelField, FieldMixin):
 
 
 class NullBooleanField(fields.NullBooleanField, FieldMixin):
-    def from_string_representation(self, value):
-        if value:
-            val = value.lower()
-            if val == 'true' or val == 'yes' or val == '1':
-                return True
-            if val == 'false' or val == 'no' or val == '0':
-                return False
-        return None
+    pass
 
 
 class SlugField(fields.SlugField, FieldMixin):
