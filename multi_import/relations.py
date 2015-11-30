@@ -62,18 +62,9 @@ class RelatedFieldMixin(FieldMixin):
         return self.queryset.model
 
 
-class RelatedField(RelatedFieldMixin, relations.RelatedField):
-    @classmethod
-    def many_init(cls, *args, **kwargs):
-        list_kwargs = {'child_relation': cls(*args, **kwargs)}
-        for key in kwargs.keys():
-            if key in MANY_RELATION_KWARGS:
-                list_kwargs[key] = kwargs[key]
-        return ManyRelatedField(**list_kwargs)
 
-    @property
-    def related_model(self):
-        return self.queryset.model
+class RelatedField(RelatedFieldMixin, relations.RelatedField):
+    pass
 
 
 class HyperlinkedRelatedField(RelatedFieldMixin,

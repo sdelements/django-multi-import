@@ -5,6 +5,7 @@ from multi_import.utils import normalize_string
 __all__ = [
     'empty',
     'FieldMixin',
+    'Field',
     'BooleanField',
     'CharField',
     'ChoiceField',
@@ -39,6 +40,10 @@ class FieldMixin(object):
 
     def from_string_representation(self, value):
         return value
+
+
+class Field(fields.Field, FieldMixin):
+    pass
 
 
 class BooleanField(fields.BooleanField, FieldMixin):
