@@ -51,6 +51,12 @@ class ManyRelatedField(relations.ManyRelatedField, FieldMixin):
             for val in value.split(self.list_separator)
         ]
 
+    def update_instance(self, instance, value):
+        object_manager = getattr(instance, self.source)
+        object_manager.clear()
+        for val in value:
+            object_manager.add(val)
+
 
 class RelatedFieldMixin(FieldMixin):
     @classmethod

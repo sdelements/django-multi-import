@@ -45,6 +45,9 @@ class FieldMixin(object):
     def from_string_representation(self, value):
         return value
 
+    def update_instance(self, instance, value):
+        setattr(instance, self.source, value)
+
 
 class Field(fields.Field, FieldMixin):
     pass

@@ -43,7 +43,7 @@ class ImportDiffApplier(object):
                 if value:
                     value = field.related_model.objects.get(pk=value)
 
-            if isinstance(field, ManyRelatedField):
+            elif isinstance(field, ManyRelatedField):
                 # TODO: Add support for new object refs
                 if num_values != required_values:
                     continue
@@ -52,6 +52,10 @@ class ImportDiffApplier(object):
                 value = list(related_model.objects.filter(pk__in=value))
                 if len(value) != expected_length:
                     raise field.child_relation.related_model.ObjectDoesNotExist
+
+            else:
+                value = field.from_string_representation(value)
+                value = field.to_internal_value(value)
 
             changes.append((field, value))
         return changes
@@ -81,8 +85,8 @@ class ImportDiffApplier(object):
             instance = self.create_object(data)
 
             for field, value in changes:
-                if isinstance(field, ManyRelatedField):
-                    self.set_one_to_many(instance, field, value)
+                if not field.model_init:
+                    field.update_instance(instance, value)
 
     def process_updated_objects(self, diff_columns, updated_objects):
         for updated_object in updated_objects:
@@ -93,10 +97,7 @@ class ImportDiffApplier(object):
                                               update=True)
 
             for field, value in changes:
-                if isinstance(field, ManyRelatedField):
-                    self.set_one_to_many(instance, field, value)
-                else:
-                    setattr(instance, field.source, value)
+                field.update_instance(instance, value)
 
             instance.full_clean()
             instance.save()
