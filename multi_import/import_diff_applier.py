@@ -66,12 +66,6 @@ class ImportDiffApplier(object):
         instance.save()
         return instance
 
-    def set_one_to_many(self, instance, field, values):
-        object_manager = getattr(instance, field.source)
-        object_manager.clear()
-        for value in values:
-            object_manager.add(value)
-
     def process_new_objects(self, diff_columns, new_objects):
         for new_object in new_objects:
             changes = self.get_object_changes(diff_columns, new_object)
