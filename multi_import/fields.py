@@ -33,6 +33,10 @@ empty = fields.empty
 
 class FieldMixin(object):
 
+    @property
+    def model_init(self):
+        return True
+
     def to_string_representation(self, value):
         if value is None:
             value = ''

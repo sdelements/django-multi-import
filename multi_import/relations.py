@@ -32,6 +32,10 @@ class ManyRelatedField(relations.ManyRelatedField, FieldMixin):
         self.list_separator = list_separator
         super(ManyRelatedField, self).__init__(*args, **kwargs)
 
+    @property
+    def model_init(self):
+        return False
+
     def to_string_representation(self, value):
         return unicode(self.list_separator).join([
             self.child_relation.to_string_representation(val)

@@ -75,7 +75,7 @@ class ImportDiffApplier(object):
             data = {
                 field.source: value
                 for field, value in changes
-                if not isinstance(field, ManyRelatedField)
+                if field.model_init
             }
 
             instance = self.create_object(data)
