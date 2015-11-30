@@ -67,10 +67,12 @@ class ImportExportManager(object):
         fields = self.serializer_factory.fields
 
         for field in fields.related_fields():
-            queryset = queryset.select_related(field.source)
+            if field.prefetch:
+                queryset = queryset.select_related(field.source)
 
         for field in fields.many_related_fields():
-            queryset = queryset.prefetch_related(field.source)
+            if field.prefetch:
+                queryset = queryset.prefetch_related(field.source)
 
         return queryset
 

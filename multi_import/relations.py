@@ -36,6 +36,10 @@ class ManyRelatedField(relations.ManyRelatedField, FieldMixin):
     def model_init(self):
         return False
 
+    @property
+    def prefetch(self):
+        self.child_relation.prefetch
+
     def to_string_representation(self, value):
         return unicode(self.list_separator).join([
             self.child_relation.to_string_representation(val)
@@ -71,6 +75,9 @@ class RelatedFieldMixin(FieldMixin):
     def related_model(self):
         return self.queryset.model
 
+    @property
+    def prefetch(self):
+        return True
 
 
 class RelatedField(RelatedFieldMixin, relations.RelatedField):
