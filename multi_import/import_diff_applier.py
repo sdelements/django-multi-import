@@ -47,10 +47,11 @@ class ImportDiffApplier(object):
                 # TODO: Add support for new object refs
                 if num_values != required_values:
                     continue
-                value = [
-                    field.child_relation.related_model.objects.get(pk=val)
-                    for val in value
-                ]
+                expected_length = len(value)
+                related_model = field.child_relation.related_model
+                value = list(related_model.objects.filter(pk__in=value))
+                if len(value) != expected_length:
+                    raise field.child_relation.related_model.ObjectDoesNotExist
 
             changes.append((field, value))
         return changes
