@@ -38,7 +38,7 @@ class ManyRelatedField(relations.ManyRelatedField, FieldMixin):
 
     @property
     def prefetch(self):
-        self.child_relation.prefetch
+        return self.child_relation.prefetch
 
     def to_string_representation(self, value):
         return unicode(self.list_separator).join([
