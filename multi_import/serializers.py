@@ -12,6 +12,7 @@ from multi_import.utils import normalize_string
 __all__ = [
     'FieldInfo',
     'SerializerFactory',
+    'ImportExportSerializer',
     'ModelSerializer',
 ]
 
@@ -73,38 +74,7 @@ class SerializerFactory(object):
         return self.serializer(*args, **kwargs)
 
 
-class ModelSerializer(DrfModelSerializer):
-    serializer_field_mapping = {
-        models.AutoField: fields.IntegerField,
-        models.BigIntegerField: fields.IntegerField,
-        models.BooleanField: fields.BooleanField,
-        models.CharField: fields.CharField,
-        models.CommaSeparatedIntegerField: fields.CharField,
-        models.DateField: fields.DateField,
-        models.DateTimeField: fields.DateTimeField,
-        models.DecimalField: fields.DecimalField,
-        models.EmailField: fields.EmailField,
-        models.Field: fields.ModelField,
-        models.FileField: fields.FileField,
-        models.FloatField: fields.FloatField,
-        models.ImageField: fields.ImageField,
-        models.IntegerField: fields.IntegerField,
-        models.NullBooleanField: fields.NullBooleanField,
-        models.PositiveIntegerField: fields.IntegerField,
-        models.PositiveSmallIntegerField: fields.IntegerField,
-        models.SlugField: fields.SlugField,
-        models.SmallIntegerField: fields.IntegerField,
-        models.TextField: fields.CharField,
-        models.TimeField: fields.TimeField,
-        models.URLField: fields.URLField,
-        models.GenericIPAddressField: fields.IPAddressField,
-        models.FilePathField: fields.FilePathField,
-    }
-    if ModelDurationField is not None:
-        serializer_field_mapping[ModelDurationField] = fields.DurationField
-    serializer_related_field = relations.LookupRelatedField
-    serializer_url_field = relations.HyperlinkedIdentityField
-    serializer_choice_field = fields.ChoiceField
+class ImportExportSerializer(object):
 
     @property
     def new_object_cache(self):
@@ -177,3 +147,37 @@ class ModelSerializer(DrfModelSerializer):
         instance = self.create_temporary_instance()
         cache = self.new_object_cache[self.Meta.model]
         cache.cache_instance(instance)
+
+
+class ModelSerializer(ImportExportSerializer, DrfModelSerializer):
+    serializer_field_mapping = {
+        models.AutoField: fields.IntegerField,
+        models.BigIntegerField: fields.IntegerField,
+        models.BooleanField: fields.BooleanField,
+        models.CharField: fields.CharField,
+        models.CommaSeparatedIntegerField: fields.CharField,
+        models.DateField: fields.DateField,
+        models.DateTimeField: fields.DateTimeField,
+        models.DecimalField: fields.DecimalField,
+        models.EmailField: fields.EmailField,
+        models.Field: fields.ModelField,
+        models.FileField: fields.FileField,
+        models.FloatField: fields.FloatField,
+        models.ImageField: fields.ImageField,
+        models.IntegerField: fields.IntegerField,
+        models.NullBooleanField: fields.NullBooleanField,
+        models.PositiveIntegerField: fields.IntegerField,
+        models.PositiveSmallIntegerField: fields.IntegerField,
+        models.SlugField: fields.SlugField,
+        models.SmallIntegerField: fields.IntegerField,
+        models.TextField: fields.CharField,
+        models.TimeField: fields.TimeField,
+        models.URLField: fields.URLField,
+        models.GenericIPAddressField: fields.IPAddressField,
+        models.FilePathField: fields.FilePathField,
+    }
+    if ModelDurationField is not None:
+        serializer_field_mapping[ModelDurationField] = fields.DurationField
+    serializer_related_field = relations.LookupRelatedField
+    serializer_url_field = relations.HyperlinkedIdentityField
+    serializer_choice_field = fields.ChoiceField
