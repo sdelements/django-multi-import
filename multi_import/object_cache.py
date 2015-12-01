@@ -4,6 +4,12 @@ from django.core.exceptions import MultipleObjectsReturned
 from tablib.compat import unicode
 
 
+__all__ = [
+    'ObjectCache',
+    'CachedQuery',
+]
+
+
 class ObjectCache(defaultdict):
     multiple_objects_error = MultipleObjectsReturned
 

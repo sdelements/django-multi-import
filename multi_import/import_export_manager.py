@@ -1,9 +1,7 @@
 from multi_import.exporter import Exporter
 from multi_import.import_diff_applier import ImportDiffApplier
 from multi_import.import_diff_generator import ImportDiffGenerator
-from multi_import.mappings import BoundMapping
-from multi_import.object_resolver import ObjectResolver
-from multi_import.value_resolver import ValueResolver
+from multi_import.serializers import SerializerFactory
 
 
 class ImportExportManager(object):
@@ -11,47 +9,28 @@ class ImportExportManager(object):
     key = None
     model = None
     id_column = None
-    mappings = []
     lookup_fields = ('pk',)
-    default_related_lookup_fields = ('pk',)
 
-    value_resolver = ValueResolver
+    serializer = None
 
     exporter = Exporter
     import_diff_generator = ImportDiffGenerator
     import_diff_applier = ImportDiffApplier
 
     def __init__(self):
-        self.bind_mappings(list(self.mappings))
-
-    def bind_mappings(self, mappings):
-        self.mappings = BoundMapping.bind_mappings(
-            mappings, self.model, self.default_related_lookup_fields
-        )
+        self.serializer_factory = SerializerFactory(self.serializer)
 
     @property
     def dependencies(self):
         """
         Returns a list of related models that this importer is dependent on.
         """
-        return [
-            mapping.related_model for mapping in self.mappings.writable
-            if mapping.is_relationship
-        ]
-
-    def get_value_resolver_kwargs(self):
-        return {}
-
-    def get_object_resolver(self):
-        return ObjectResolver(self.value_resolver,
-                              self.mappings,
-                              self.get_value_resolver_kwargs())
+        return self.serializer_factory.fields.dependencies
 
     def get_exporter_kwargs(self):
         return {
-            'mappings': self.mappings,
             'queryset': self.get_export_queryset(),
-            'object_resolver': self.get_object_resolver()
+            'serializer_factory': self.serializer_factory
         }
 
     def get_exporter(self):
@@ -61,10 +40,9 @@ class ImportExportManager(object):
         return {
             'key': self.key,
             'model': self.model,
-            'mappings': self.mappings,
             'lookup_fields': self.lookup_fields,
             'queryset': self.get_import_queryset(),
-            'object_resolver': self.get_object_resolver()
+            'serializer_factory': self.serializer_factory
         }
 
     def get_import_diff_generator(self):
@@ -75,8 +53,8 @@ class ImportExportManager(object):
     def get_import_diff_applier_kwargs(self):
         return {
             'model': self.model,
-            'mappings': self.mappings,
-            'queryset': self.get_import_queryset()
+            'queryset': self.get_import_queryset(),
+            'serializer_factory': self.serializer_factory
         }
 
     def get_import_diff_applier(self):
@@ -86,12 +64,15 @@ class ImportExportManager(object):
 
     def get_queryset(self):
         queryset = self.model.objects
+        fields = self.serializer_factory.fields
 
-        for mapping in self.mappings:
-            if mapping.is_foreign_key:
-                queryset = queryset.select_related(mapping.field_name)
-            elif mapping.is_one_to_many:
-                queryset = queryset.prefetch_related(mapping.field_name)
+        for field in fields.related_fields():
+            if field.prefetch:
+                queryset = queryset.select_related(field.source)
+
+        for field in fields.many_related_fields():
+            if field.prefetch:
+                queryset = queryset.prefetch_related(field.source)
 
         return queryset
 

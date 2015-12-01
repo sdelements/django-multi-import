@@ -3,10 +3,9 @@ import tablib
 
 class Exporter(object):
 
-    def __init__(self, mappings, queryset, object_resolver):
-        self.mappings = mappings
+    def __init__(self, queryset, serializer_factory):
         self.queryset = queryset
-        self.object_resolver = object_resolver
+        self.serializer = serializer_factory.default
 
     def export_dataset(self, template=False):
         dataset = tablib.Dataset(headers=self.get_header())
@@ -18,11 +17,14 @@ class Exporter(object):
         return dataset
 
     def get_header(self):
-        return [mapping.column_name for mapping in self.mappings]
+        return self.serializer.get_fields().keys()
 
     def get_row(self, instance):
-        resolved_values = self.object_resolver.resolve_export_values(instance)
-        return [
-            resolved_value.get_string()
-            for resolved_value in resolved_values.list
-        ]
+        results = []
+        representation = self.serializer.to_representation(instance=instance)
+        for column_name, value in representation.iteritems():
+            field = self.serializer.fields[column_name]
+            results.append(
+                field.to_string_representation(value)
+            )
+        return results
