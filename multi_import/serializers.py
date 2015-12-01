@@ -1,3 +1,5 @@
+from collections import namedtuple
+
 from django.db import models
 from rest_framework.compat import DurationField as ModelDurationField
 from rest_framework.serializers import ModelSerializer as DrfModelSerializer
@@ -74,6 +76,9 @@ class SerializerFactory(object):
         return self.serializer(*args, **kwargs)
 
 
+FieldChange = namedtuple('FieldChange', ['field', 'old', 'new', 'value'])
+
+
 class ImportExportSerializer(object):
 
     @property
@@ -82,35 +87,39 @@ class ImportExportSerializer(object):
 
     @property
     def has_changes(self):
-        if not hasattr(self, '_validated_data'):
-            raise AssertionError(
-                'You must call `.is_valid()` before accessing `.has_changes`.'
-            )
+        return len(self.changed_fields) > 0
 
-        if not self.instance:
-            return True
+    @property
+    def changed_fields(self):
+        result = {}
 
-        orig = self.to_representation(self.instance)
-        validated_data_keys = self.validated_data.keys()
+        if self.instance:
+            orig = self.to_representation(self.instance)
+        else:
+            orig = {}
 
-        orig_subset = {}
-        validated_data = {}
+        for field_name, field in self.fields.items():
+            source = unicode(field.source)
 
-        for column_name, value in orig.items():
-            field = self.fields[column_name]
-            field_name = unicode(field.source)
-            if field_name in validated_data_keys:
+            if source not in self.validated_data:
+                continue
 
-                # TODO: Move this to .to_representation()?
-                if isinstance(value, six.string_types):
-                    value = normalize_string(value)
+            old_value = orig[field_name] if field_name in orig else None
 
-                orig_subset[field_name] = value
-                validated_data[field_name] = field.to_representation(
-                    self.validated_data[field_name]
-                )
+            # TODO: Move this to .to_representation()?
+            if isinstance(old_value, six.string_types):
+                old_value = normalize_string(old_value)
 
-        return orig_subset != validated_data
+            value = self.validated_data[source]
+            new_value = field.to_representation(value)
+
+            if old_value != new_value:
+                result[field_name] = FieldChange(field,
+                                                 old_value,
+                                                 new_value,
+                                                 value)
+
+        return result
 
     def transform_input(self, data):
         result = data.copy()
@@ -122,12 +131,6 @@ class ImportExportSerializer(object):
         return result
 
     def create_temporary_instance(self):
-        if not hasattr(self, '_validated_data'):
-            raise AssertionError(
-                'You must call `.is_valid()` '
-                'before calling `.create_temporary_instance()`.'
-            )
-
         validated_data = self.validated_data.copy()
 
         ModelClass = self.Meta.model
