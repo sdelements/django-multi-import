@@ -157,73 +157,60 @@ class ImportDiffGenerator(object):
             yield Row(row_number, line_number, row_data)
 
     def get_diff_data(self, dataset, row, serializer):
+        if not serializer.has_changes:
+            return None
 
         data = {}
-        has_changes = False
-        instance = serializer.instance
-        if instance:
-            orig = serializer.to_representation(instance)
-        validated_data = serializer.validated_data
+
+        changed_fields = serializer.changed_fields
+
+        if serializer.instance:
+            orig = serializer.to_representation(serializer.instance)
+        else:
+            orig = {}
 
         for column_name in dataset.headers:
             field = serializer.fields.get(column_name, None)
             if not field:
                 continue
 
-            field_changed = instance is None and not field.read_only
-            field_data = []
+            data[column_name] = field_data = []
 
-            # validated_data disregards read-only attributes
-            if field.read_only:
-                if instance:
-                    new_value = orig[column_name]
+            if column_name in orig:
+                field_data.append(
+                    field.to_string_representation(orig[column_name])
+                )
+
+            field_change = changed_fields.get(column_name, None)
+
+            if not field_change:
+                continue
+
+            new_value = field_change.new
+
+            field_data.append(
+                field.to_string_representation(new_value)
+            )
+
+            value = field_change.value
+
+            # TODO: Add handling for new object refs - they don't have a PK
+
+            if isinstance(field, RelatedField):
+                if not value or value is empty:
+                    field_data.append(None)
+                elif value.pk:
+                    field_data.append(value.pk)
+
+            if isinstance(field, ManyRelatedField):
+                if value and value is not empty:
+                    field_data.append(
+                        [item.pk for item in value if item.pk]
+                    )
                 else:
-                    new_value = row.data.get(column_name, None)
-                new_representation = new_value
-            else:
-                new_value = validated_data.get(field.source, None)
-                new_representation = field.to_representation(new_value)
+                    field_data.append([])
 
-            if instance:
-
-                old_representation = orig[column_name]
-
-                if (not field.read_only and
-                        new_value is not empty and
-                        old_representation != new_representation):
-                    field_changed = True
-
-                field_data.append(
-                    field.to_string_representation(old_representation)
-                )
-
-            if field_changed:
-                # TODO: Add handling for new object refs - they don't have a PK
-
-                field_data.append(
-                    field.to_string_representation(new_representation)
-                )
-
-                if isinstance(field, RelatedField):
-                    if not new_value or new_value is empty:
-                        field_data.append(None)
-                    elif new_value.pk:
-                        field_data.append(new_value.pk)
-
-                if isinstance(field, ManyRelatedField):
-                    if new_value and new_value is not empty:
-                        field_data.append(
-                            [item.pk for item in new_value if item.pk]
-                        )
-                    else:
-                        field_data.append([])
-
-            data[column_name] = field_data
-
-            if field_changed:
-                has_changes = True
-
-        return data if has_changes else None
+        return data
 
     def add_to_diff_result(self, result, dataset, row, serializer):
 

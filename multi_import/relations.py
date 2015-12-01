@@ -41,6 +41,9 @@ class ManyRelatedField(relations.ManyRelatedField, FieldMixin):
         return self.child_relation.prefetch
 
     def to_string_representation(self, value):
+        if value is None:
+            value = []
+
         return unicode(self.list_separator).join([
             self.child_relation.to_string_representation(val)
             for val in value
