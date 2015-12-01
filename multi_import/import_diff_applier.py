@@ -10,7 +10,7 @@ class ImportDiffApplier(object):
         self.queryset = queryset
         self.serializer = serializer_factory.default
 
-    def get_object_for_update(self, obj_id):
+    def get_object_for_update(self, obj_id, changed_fields):
         return self.queryset.get(pk=obj_id)
 
     def get_object_changes(self, columns, obj, update=False):
@@ -84,11 +84,14 @@ class ImportDiffApplier(object):
 
     def process_updated_objects(self, diff_columns, updated_objects):
         for updated_object in updated_objects:
-            instance = self.get_object_for_update(updated_object['id'])
-
             changes = self.get_object_changes(diff_columns,
                                               updated_object,
                                               update=True)
+
+            changed_fields = [field.field_name for field, value in changes]
+
+            instance = self.get_object_for_update(updated_object['id'],
+                                                  changed_fields)
 
             for field, value in changes:
                 field.update_instance(instance, value)
