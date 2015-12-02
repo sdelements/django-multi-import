@@ -23,7 +23,7 @@ class MultiImportResult(object):
         if result.valid is False:
             self.errors[filename] = result.errors
 
-        diff = result.diff.copy()
+        diff = result.result.copy()
         diff['filename'] = filename
         self.diff['files'].append(diff)
 
@@ -108,22 +108,29 @@ class MultiImportExporter(object):
     def import_datasets(self, datasets):
         results = MultiImportResult()
 
-        new_obj_refs = self.get_new_object_cache()
+        context = {
+            'new_object_cache': self.get_new_object_cache()
+        }
 
         for importer in self.import_exporters:
             for file_data in datasets.get(importer.model, []):
                 filename, data = file_data
-                result = importer.generate_import_diff(data, new_obj_refs)
+                result = importer.generate_import_diff(data, context)
                 results.add_result(filename, result)
 
         return results
 
     def apply_import(self, diff):
         files = diff.get('files', [])
+
+        context = {
+            'new_object_cache': self.get_new_object_cache()
+        }
+
         for importer in self.import_exporters:
             datasets = (f for f in files if f['model'] == importer.key)
             for dataset in datasets:
-                importer.apply_import_diff(dataset)
+                importer.apply_import_diff(dataset, context)
 
     def export_datasets(self, keys=None, template=False):
         if keys:

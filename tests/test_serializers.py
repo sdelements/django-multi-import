@@ -1,11 +1,15 @@
 from django.test import TestCase
+from rest_framework.serializers import ModelSerializer
+
 from multi_import.relations import LookupRelatedField
-from multi_import.serializers import ModelSerializer
+from multi_import.serializers import ImportExportSerializer
 
 from tests.models import Person
 
 
-class PersonSerializer(ModelSerializer):
+class PersonSerializer(ImportExportSerializer, ModelSerializer):
+
+    serializer_related_field = LookupRelatedField
 
     children = LookupRelatedField(
         many=True,

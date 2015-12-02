@@ -1,11 +1,17 @@
 import tablib
 
+from multi_import.fields import FieldHelper
 
-class Exporter(object):
+__all__ = [
+    'Exporter',
+]
 
-    def __init__(self, queryset, serializer_factory):
+
+class Exporter(FieldHelper):
+
+    def __init__(self, queryset, serializer):
         self.queryset = queryset
-        self.serializer = serializer_factory.default
+        self.serializer = serializer()
 
     def export_dataset(self, template=False):
         dataset = tablib.Dataset(headers=self.get_header())
@@ -25,6 +31,6 @@ class Exporter(object):
         for column_name, value in representation.iteritems():
             field = self.serializer.fields[column_name]
             results.append(
-                field.to_string_representation(value)
+                self.to_string_representation(field, value)
             )
         return results

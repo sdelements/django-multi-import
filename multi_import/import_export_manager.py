@@ -1,7 +1,7 @@
 from multi_import.exporter import Exporter
-from multi_import.import_diff_applier import ImportDiffApplier
-from multi_import.import_diff_generator import ImportDiffGenerator
-from multi_import.serializers import SerializerFactory
+from multi_import.importer import (Importer,
+                                   ImportDiffApplier,
+                                   ImportDiffGenerator)
 
 
 class ImportExportManager(object):
@@ -14,65 +14,50 @@ class ImportExportManager(object):
     serializer = None
 
     exporter = Exporter
+    importer = Importer
     import_diff_generator = ImportDiffGenerator
     import_diff_applier = ImportDiffApplier
-
-    def __init__(self):
-        self.serializer_factory = SerializerFactory(self.serializer)
 
     @property
     def dependencies(self):
         """
         Returns a list of related models that this importer is dependent on.
         """
-        return self.serializer_factory.fields.dependencies
+        return self.serializer().dependencies
 
     def get_exporter_kwargs(self):
         return {
             'queryset': self.get_export_queryset(),
-            'serializer_factory': self.serializer_factory
+            'serializer': self.serializer
         }
 
     def get_exporter(self):
         return self.exporter(**self.get_exporter_kwargs())
 
-    def get_import_diff_generator_kwargs(self):
+    def get_importer_kwargs(self, import_behaviour):
         return {
+            'import_behaviour': import_behaviour,
             'key': self.key,
             'model': self.model,
             'lookup_fields': self.lookup_fields,
             'queryset': self.get_import_queryset(),
-            'serializer_factory': self.serializer_factory
+            'serializer': self.serializer
         }
 
-    def get_import_diff_generator(self):
-        return self.import_diff_generator(
-            **self.get_import_diff_generator_kwargs()
-        )
-
-    def get_import_diff_applier_kwargs(self):
-        return {
-            'model': self.model,
-            'queryset': self.get_import_queryset(),
-            'serializer_factory': self.serializer_factory
-        }
-
-    def get_import_diff_applier(self):
-        return self.import_diff_applier(
-            **self.get_import_diff_applier_kwargs()
+    def get_importer(self, import_behaviour):
+        return self.importer(
+            **self.get_importer_kwargs(import_behaviour)
         )
 
     def get_queryset(self):
         queryset = self.model.objects
-        fields = self.serializer_factory.fields
+        serializer = self.serializer()
 
-        for field in fields.related_fields():
-            if field.prefetch:
-                queryset = queryset.select_related(field.source)
+        for field in serializer.related_fields():
+            queryset = queryset.select_related(field.source)
 
-        for field in fields.many_related_fields():
-            if field.prefetch:
-                queryset = queryset.prefetch_related(field.source)
+        for field in serializer.many_related_fields():
+            queryset = queryset.prefetch_related(field.source)
 
         return queryset
 
@@ -86,11 +71,10 @@ class ImportExportManager(object):
         exporter = self.get_exporter()
         return exporter.export_dataset(template)
 
-    def generate_import_diff(self, dataset, new_object_refs):
-        import_diff_generator = self.get_import_diff_generator()
-        return import_diff_generator.generate_import_diff(dataset,
-                                                          new_object_refs)
+    def generate_import_diff(self, dataset, context=None):
+        importer = self.get_importer(self.import_diff_generator)
+        return importer.run(dataset, context)
 
-    def apply_import_diff(self, diff_data):
-        import_diff_applier = self.get_import_diff_applier()
-        return import_diff_applier.apply_diff(diff_data)
+    def apply_import_diff(self, diff_data, context=None):
+        importer = self.get_importer(self.import_diff_applier)
+        return importer.run(diff_data, context)
