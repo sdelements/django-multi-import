@@ -28,7 +28,7 @@ class Exporter(FieldHelper):
     def get_row(self, instance):
         results = []
         representation = self.serializer.to_representation(instance=instance)
-        for column_name, value in representation.iteritems():
+        for column_name, value in representation.items():
             field = self.serializer.fields[column_name]
             results.append(
                 self.to_string_representation(field, value)

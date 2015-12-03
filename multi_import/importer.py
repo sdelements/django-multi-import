@@ -92,8 +92,7 @@ class Importer(object):
         self.cached_query = self.get_cached_query()
 
     def get_serializer_context(self, context=None):
-        if context is None:
-            context = {}
+        context = context or {}
         context['cached_query'] = self.cached_query
         return context
 
@@ -160,7 +159,7 @@ class Importer(object):
                 continue
 
             if not is_valid:
-                for column_name, messages in serializer.errors.iteritems():
+                for column_name, messages in serializer.errors.items():
                     result.add_row_errors(row, messages, column_name)
                 continue
 
@@ -207,7 +206,7 @@ class ImportDiffGenerator(ImportBehaviour, FieldHelper):
         Required for Excel imports.
         """
         data = {}
-        for key, value in row_data.iteritems():
+        for key, value in row_data.items():
             if value is None:
                 value = ''
 
@@ -225,7 +224,7 @@ class ImportDiffGenerator(ImportBehaviour, FieldHelper):
             data = self.normalize_row_data(row_data)
 
             result = data.copy()
-            for field_name, value in data.iteritems():
+            for field_name, value in data.items():
                 field = self.serializer.fields.get(field_name, None)
                 if field:
                     val = self.from_string_representation(field, value)

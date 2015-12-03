@@ -140,7 +140,7 @@ class ExportResult(object):
         else:
             file = BytesIO()
             with zipfile.ZipFile(file, "w") as zf:
-                for key, f in self.files.iteritems():
+                for key, f in self.files.items():
                     fname = "{0}.{1}".format(key, self.file_format)
                     zf.writestr(fname, f.getvalue())
             mimetype = "application-x-zip-compressed"
@@ -166,7 +166,7 @@ class MultiFileImportExporter(MultiImportExporter):
 
         result = ExportResult(file_format, self.zip_filename)
 
-        for key, dataset in datasets.datasets.iteritems():
+        for key, dataset in datasets.datasets.items():
             f = self.file_writer.write(dataset, file_format)
             result.add_result(key, f)
 
@@ -183,7 +183,7 @@ class MultiFileImportExporter(MultiImportExporter):
         results = MultiImportResult()
 
         data = {}
-        for filename, fp in files.iteritems():
+        for filename, fp in files.items():
             try:
                 dataset = self.read_file(fp)
                 model, data_item = self.identify_dataset(filename, dataset)

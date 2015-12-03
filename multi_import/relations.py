@@ -28,8 +28,6 @@ class LookupRelatedField(relations.RelatedField):
             self.fail('multiple_matches', value=data)
         except ObjectDoesNotExist:
             self.fail('does_not_exist', value=data)
-        # except (TypeError, ValueError):
-        #     self.fail('incorrect_type', data_type=type(data).__name__)
 
     def to_representation(self, value):
         for attribute in self.lookup_fields:
@@ -73,6 +71,6 @@ class LookupRelatedField(relations.RelatedField):
         for attribute in self.lookup_fields:
             try:
                 return queryset.get(**{attribute: value})
-            except (FieldError, ObjectDoesNotExist, ValueError):
+            except (FieldError, ObjectDoesNotExist, TypeError, ValueError):
                 continue
         raise ObjectDoesNotExist

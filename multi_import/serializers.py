@@ -37,11 +37,10 @@ class ImportExportSerializer(FieldHelper, Serializer):
             for field in self.many_related_fields()
         ])
 
-        for field in self.related_fields():
+        for field, queryset in fields:
             if field.read_only:
                 continue
 
-            queryset = field.queryset
             if hasattr(queryset, 'model'):
                 model = queryset.model
             else:
@@ -65,16 +64,13 @@ class ImportExportSerializer(FieldHelper, Serializer):
 
     @property
     def has_changes(self):
-        return len(self.changed_fields) > 0
+        return bool(self.changed_fields)
 
     @property
     def changed_fields(self):
         result = {}
 
-        if self.instance:
-            orig = self.to_representation(self.instance)
-        else:
-            orig = {}
+        orig = self.to_representation(self.instance) if self.instance else {}
 
         for field_name, field in self.fields.items():
             source = unicode(field.source)
@@ -101,7 +97,7 @@ class ImportExportSerializer(FieldHelper, Serializer):
 
     def transform_input(self, data):
         result = data.copy()
-        for field_name, value in data.iteritems():
+        for field_name, value in data.items():
             field = self.fields.get(field_name, None)
             if field:
                 val = self.from_string_representation(field, value)
@@ -139,10 +135,7 @@ class ImportExportSerializer(FieldHelper, Serializer):
 
         changed_fields = self.changed_fields
 
-        if self.instance:
-            orig = self.to_representation(self.instance)
-        else:
-            orig = {}
+        orig = self.to_representation(self.instance) if self.instance else {}
 
         for column_name in self.initial_data:
             field = self.fields.get(column_name, None)
