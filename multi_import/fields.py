@@ -2,6 +2,7 @@ from rest_framework import relations
 
 from multi_import.utils import normalize_string
 
+
 __all__ = [
     'FieldHelper',
 ]
@@ -24,7 +25,7 @@ class FieldHelper(object):
 
     def from_string_representation(self, field, value):
         if hasattr(field, 'from_string_representation'):
-            return field.to_string_representation(value)
+            return field.from_string_representation(value)
 
         if isinstance(field, relations.ManyRelatedField):
             return self.many_from_string_representation(field, value)
