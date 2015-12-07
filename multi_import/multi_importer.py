@@ -1,7 +1,13 @@
+from django.db import transaction
+
 from multi_import.object_cache import ObjectCache
 
 
 class InvalidDatasetError(Exception):
+    pass
+
+
+class ImportInvalidError(Exception):
     pass
 
 
@@ -121,16 +127,28 @@ class MultiImportExporter(object):
         return results
 
     def apply_import(self, diff):
-        files = diff.get('files', [])
+        results = MultiImportResult()
 
-        context = {
-            'new_object_cache': self.get_new_object_cache()
-        }
+        try:
+            with transaction.atomic():
+                context = {
+                    'new_object_cache': self.get_new_object_cache()
+                }
 
-        for importer in self.import_exporters:
-            datasets = (f for f in files if f['model'] == importer.key)
-            for dataset in datasets:
-                importer.apply_import_diff(dataset, context)
+                files = diff.get('files', [])
+                for importer in self.import_exporters:
+                    datasets = (f for f in files if f['model'] == importer.key)
+                    for dataset in datasets:
+                        result = importer.apply_import_diff(dataset, context)
+                        results.add_result(dataset.get('filename', ''), result)
+
+                if not results.valid:
+                    raise ImportInvalidError
+
+        except ImportInvalidError:
+            pass
+
+        return results
 
     def export_datasets(self, keys=None, template=False):
         if keys:
