@@ -1,4 +1,5 @@
 from rest_framework import relations
+from tablib.compat import unicode
 
 from multi_import.utils import normalize_string
 
