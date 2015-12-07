@@ -1,60 +1,11 @@
 from django.core.exceptions import MultipleObjectsReturned
-from six import string_types
-from tablib.compat import unicode
 
-from multi_import.fields import FieldHelper
 from multi_import.object_cache import CachedQuery
-from multi_import.utils import normalize_string
 
 
 __all__ = [
-    'ImportResult',
     'Importer',
-    'ImportBehaviour',
-    'ImportDiffGenerator',
-    'ImportDiffApplier',
 ]
-
-
-class ImportResult(object):
-    """
-    Results from an attempt to generate an import diff.
-    Contains a list of errors, or if successful, a diff object.
-    """
-    def __init__(self, model_key, model):
-        self.model = model
-        self.errors = []
-        self.results = []
-        self.result = {
-            'model': model_key,
-            'results': self.results
-        }
-
-    @property
-    def valid(self):
-        return len(self.errors) == 0
-
-    def add_errors(self, errors):
-        self.errors.extend(errors)
-
-    def add_row_error(self, row, message, column_name=None):
-        error = {
-            'line_number': row.line_number,
-            'row_number': row.row_number,
-            'message': message
-        }
-        if column_name:
-            error['attribute'] = column_name
-        self.errors.append(error)
-
-    def add_row_errors(self, row, messages, column_name=None):
-        for message in messages:
-            self.add_row_error(row, message, column_name)
-
-    def add_result(self, result, line_number, row_number):
-        result['line_number'] = line_number
-        result['row_number'] = row_number
-        self.results.append(result)
 
 
 class Row(object):
@@ -105,9 +56,6 @@ class Importer(object):
     def lookup_model_object(self, row):
         return self.cached_query.lookup(self.lookup_fields, row.data)
 
-    def get_result_object(self, input):
-        return ImportResult(self.key, self.model)
-
     def enumerate_data(self, data):
         """
         Enumerates rows, and calculates row and line numbers
@@ -123,9 +71,6 @@ class Importer(object):
             yield Row(row_number, line_number, row_data)
 
     def transform_input(self, input_data):
-        pass
-
-    def process_changes(self, result, row, serializer):
         pass
 
     def run(self, data, context=None):
@@ -151,6 +96,12 @@ class Importer(object):
                                          context=context,
                                          partial=True)
 
+            if not serializer.might_have_changes:
+                import_behaviour.process_unchanged_object(result,
+                                                          row,
+                                                          serializer)
+                continue
+
             is_valid = serializer.is_valid()
             update_chk = instance and (serializer.has_changes or not is_valid)
 
@@ -163,89 +114,18 @@ class Importer(object):
                     result.add_row_errors(row, messages, column_name)
                 continue
 
-            import_behaviour.process_changes(result, row, serializer)
+            if not serializer.has_changes:
+                import_behaviour.process_unchanged_object(result,
+                                                          row,
+                                                          serializer)
+
+            elif serializer.instance:
+                import_behaviour.process_updated_object(result,
+                                                        row,
+                                                        serializer)
+
+            else:
+                import_behaviour.process_new_object(result, row, serializer)
+                serializer.cache_new_object()
 
         return result
-
-
-class ImportBehaviour(object):
-    """
-    Generates a diff object based on an imported Dataset.
-    """
-    def __init__(self, key, model, serializer):
-        self.key = key
-        self.model = model
-        self.serializer_cls = serializer
-
-    def get_result_object(self, input_data):
-        return ImportResult(self.key, self.model)
-
-    def transform_input(self, input_data):
-        pass
-
-    def process_changes(self, result, row, serializer):
-        pass
-
-
-class ImportDiffGenerator(ImportBehaviour, FieldHelper):
-    """
-    Generates a diff object based on an imported Dataset.
-    """
-    def __init__(self, *args, **kwargs):
-        super(ImportDiffGenerator, self).__init__(*args, **kwargs)
-        self.serializer = self.serializer_cls()
-
-    def get_result_object(self, input_data):
-        result = super(ImportDiffGenerator, self).get_result_object(input_data)
-        result.result['column_names'] = input_data.headers
-        return result
-
-    def normalize_row_data(self, row_data):
-        """
-        Converts all values in row_data dict to strings.
-        Required for Excel imports.
-        """
-        data = {}
-        for key, value in row_data.items():
-            if value is None:
-                value = ''
-
-            if isinstance(value, float) and value.is_integer():
-                value = int(value)
-
-            if not isinstance(value, string_types):
-                value = unicode(value)
-
-            data[key] = normalize_string(value)
-        return data
-
-    def transform_input(self, input_data):
-        for row_data in input_data.dict:
-            data = self.normalize_row_data(row_data)
-
-            result = data.copy()
-            for field_name, value in data.items():
-                field = self.serializer.fields.get(field_name, None)
-                if field:
-                    val = self.from_string_representation(field, value)
-                    result[field_name] = val
-            yield result
-
-    def process_changes(self, result, row, serializer):
-        result.add_result(serializer.get_dryrun_results(),
-                          row.line_number,
-                          row.row_number)
-
-
-class ImportDiffApplier(ImportBehaviour):
-    """
-    Applies a diff JSON object.
-    """
-
-    def transform_input(self, input_data):
-        for row_data in input_data.get('results', []):
-            yield row_data.get('initial_data', {})
-
-    def process_changes(self, result, row, serializer):
-        if serializer.has_changes:
-            serializer.save()

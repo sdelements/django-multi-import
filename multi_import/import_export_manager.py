@@ -1,7 +1,7 @@
 from multi_import.exporter import Exporter
-from multi_import.importer import (Importer,
-                                   ImportDiffApplier,
-                                   ImportDiffGenerator)
+from multi_import.import_behaviours import (ImportDiffApplier,
+                                            ImportDiffGenerator)
+from multi_import.importer import Importer
 
 
 class ImportExportManager(object):

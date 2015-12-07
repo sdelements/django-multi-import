@@ -42,7 +42,7 @@ class ModelSerializerTests(TestCase):
         serializer = PersonSerializer(justin, data={
             'first_name': 'Justin',
             'last_name': 'Trudeau',
-            'partner': None
+            'partner': ''
         })
 
         serializer.is_valid()
@@ -55,11 +55,35 @@ class ModelSerializerTests(TestCase):
         serializer = PersonSerializer(justin, data={
             'first_name': 'Justin',
             'last_name': 'Trudeau2',
-            'partner': None
+            'partner': ''
         })
 
         serializer.is_valid()
         self.assertTrue(serializer.has_changes)
+
+    def test_might_have_changes_returns_true(self):
+        justin = Person(first_name='Justin', last_name='Trudeau')
+        justin.save()
+
+        serializer = PersonSerializer(justin, data={
+            'first_name': 'Justin',
+            'last_name': 'Trudeau2',
+            'partner': None
+        })
+
+        self.assertTrue(serializer.might_have_changes)
+
+    def test_might_have_changes_returns_false(self):
+        justin = Person(first_name='Justin', last_name='Trudeau')
+        justin.save()
+
+        serializer = PersonSerializer(justin, data={
+            'first_name': 'Justin',
+            'last_name': 'Trudeau',
+            'partner': ''
+        })
+
+        self.assertFalse(serializer.might_have_changes)
 
     def test_export_one_to_many(self):
         hadrien = Person(first_name='Hadrien', last_name='Trudeau')

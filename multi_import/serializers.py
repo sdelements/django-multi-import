@@ -67,6 +67,30 @@ class ImportExportSerializer(FieldHelper, Serializer):
         return bool(self.changed_fields)
 
     @property
+    def might_have_changes(self):
+        fields = [
+            (field_name, field)
+            for field_name, field in self.fields.items()
+            if field_name in self.initial_data and not field.read_only
+        ]
+
+        rep = self.to_representation(self.instance)
+
+        initial = {
+            field_name: self.to_string_representation(
+                field, self.initial_data[field_name]
+            )
+            for field_name, field in fields
+        }
+
+        result = {
+            field_name: self.to_string_representation(field, rep[field_name])
+            for field_name, field in fields
+        }
+
+        return result != initial
+
+    @property
     def changed_fields(self):
         result = {}
 
@@ -163,19 +187,3 @@ class ImportExportSerializer(FieldHelper, Serializer):
             )
 
         return data
-
-    def get_dryrun_results(self):
-        diff = self.get_diff_data()
-        change_type = 'new'
-        if self.instance:
-            change_type = 'update'
-        if not diff:
-            change_type = 'unchanged'
-
-        self.cache_new_object()
-
-        return {
-            'type': change_type,
-            'diff': self.get_diff_data(),
-            'initial_data': self.initial_data
-        }
