@@ -119,15 +119,6 @@ class ImportExportSerializer(FieldHelper, Serializer):
 
         return result
 
-    def transform_input(self, data):
-        result = data.copy()
-        for field_name, value in data.items():
-            field = self.fields.get(field_name, None)
-            if field:
-                val = self.from_string_representation(field, value)
-                result[field_name] = val
-        return result
-
     def create_temporary_instance(self):
         validated_data = self.validated_data.copy()
 
