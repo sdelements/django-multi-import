@@ -1,6 +1,4 @@
 from multi_import.exporter import Exporter
-from multi_import.import_behaviours import (ImportDiffApplier,
-                                            ImportDiffGenerator)
 from multi_import.importer import Importer
 
 
@@ -15,8 +13,6 @@ class ImportExportManager(object):
 
     exporter = Exporter
     importer = Importer
-    import_diff_generator = ImportDiffGenerator
-    import_diff_applier = ImportDiffApplier
 
     @property
     def dependencies(self):
@@ -71,10 +67,6 @@ class ImportExportManager(object):
         exporter = self.get_exporter()
         return exporter.export_dataset(template)
 
-    def generate_import_diff(self, dataset, context=None):
-        importer = self.get_importer(self.import_diff_generator)
-        return importer.run(dataset, context)
-
-    def apply_import_diff(self, diff_data, context=None):
-        importer = self.get_importer(self.import_diff_applier)
-        return importer.run(diff_data, context)
+    def import_data(self, import_behaviour, data, context=None):
+        importer = self.get_importer(import_behaviour)
+        return importer.run(data, context)

@@ -1,5 +1,6 @@
 from django.db import transaction
 
+from multi_import import import_behaviours
 from multi_import.object_cache import ObjectCache
 
 
@@ -60,12 +61,18 @@ class MultiImportExporter(object):
         'invalid_export_keys': u'Invalid keys {0} for exporting'
     }
 
+    standard_import_behaviour = import_behaviours.StandardImportBehaviour
+    import_diff_generator = import_behaviours.GenerateDiffBehaviour
+    import_diff_applier = import_behaviours.ApplyDiffBehaviour
+
     def __init__(self):
-        import_exporters = [
+        import_export_managers = [
             cls(**self.get_import_export_manager_kwargs())
             for cls in self.classes
         ]
-        self.import_exporters = self.sort_importers(import_exporters)
+        self.import_export_managers = self.sort_importers(
+            import_export_managers
+        )
 
     def get_import_export_manager_kwargs(self):
         return {}
@@ -96,7 +103,7 @@ class MultiImportExporter(object):
 
     def identify_dataset(self, filename, dataset):
         models = (
-            importer.model for importer in self.import_exporters
+            importer.model for importer in self.import_export_managers
             if importer.id_column in dataset.headers
         )
         model = next(models, None)
@@ -107,26 +114,14 @@ class MultiImportExporter(object):
 
     def get_new_object_cache(self):
         cache = {}
-        for importer in self.import_exporters:
+        for importer in self.import_export_managers:
             cache[importer.model] = ObjectCache(importer.lookup_fields)
         return cache
 
-    def import_datasets(self, datasets):
-        results = MultiImportResult()
+    def import_data(self, data, import_behaviour=None):
+        if import_behaviour is None:
+            import_behaviour = self.standard_import_behaviour
 
-        context = {
-            'new_object_cache': self.get_new_object_cache()
-        }
-
-        for importer in self.import_exporters:
-            for file_data in datasets.get(importer.model, []):
-                filename, data = file_data
-                result = importer.generate_import_diff(data, context)
-                results.add_result(filename, result)
-
-        return results
-
-    def apply_import(self, diff):
         results = MultiImportResult()
 
         try:
@@ -135,14 +130,17 @@ class MultiImportExporter(object):
                     'new_object_cache': self.get_new_object_cache()
                 }
 
-                files = diff.get('files', [])
-                for importer in self.import_exporters:
-                    datasets = (f for f in files if f['model'] == importer.key)
-                    for dataset in datasets:
-                        result = importer.apply_import_diff(dataset, context)
-                        results.add_result(dataset.get('filename', ''), result)
+                bound_importers = import_behaviour.transform_multi_input(
+                    self.import_export_managers, data
+                )
 
-                if not results.valid:
+                for importer, filename, dataset in bound_importers:
+                    result = importer.import_data(
+                        import_behaviour, dataset, context
+                    )
+                    results.add_result(filename, result)
+
+                if not results.valid or not import_behaviour.save_changes:
                     raise ImportInvalidError
 
         except ImportInvalidError:
@@ -150,11 +148,17 @@ class MultiImportExporter(object):
 
         return results
 
+    def diff_generate(self, data):
+        return self.import_data(data, self.import_diff_generator)
+
+    def diff_apply(self, diff_data):
+        return self.import_data(diff_data, self.import_diff_applier)
+
     def export_datasets(self, keys=None, template=False):
         if keys:
             # Check to make sure we're not passing in bad keys
             all_valid_keys = [
-                exporter.key for exporter in self.import_exporters
+                exporter.key for exporter in self.import_export_managers
             ]
             invalid_keys = [key for key in keys if key not in all_valid_keys]
             if invalid_keys:
@@ -165,7 +169,7 @@ class MultiImportExporter(object):
                 )
 
             exporters = [
-                exporter for exporter in self.import_exporters
+                exporter for exporter in self.import_export_managers
                 if exporter.key in keys
             ]
         else:

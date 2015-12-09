@@ -179,7 +179,7 @@ class MultiFileImportExporter(MultiImportExporter):
         except (tablib.InvalidDimensions, tablib.UnsupportedFormat):
             raise InvalidFileError(self.error_messages['invalid_file'])
 
-    def import_files(self, files):
+    def import_files(self, files, import_behaviour=None):
         results = MultiImportResult()
 
         data = {}
@@ -197,4 +197,7 @@ class MultiFileImportExporter(MultiImportExporter):
         if not results.valid:
             return results
 
-        return self.import_datasets(data)
+        return self.import_data(data, import_behaviour)
+
+    def diff_generate_files(self, files):
+        return self.import_files(files, self.import_diff_generator)
