@@ -173,7 +173,7 @@ class MultiImportExporter(object):
                 if exporter.key in keys
             ]
         else:
-            exporters = self.import_exporters
+            exporters = self.import_export_managers
 
         result = ExportResult()
 
