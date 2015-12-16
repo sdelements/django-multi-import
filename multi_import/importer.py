@@ -63,7 +63,7 @@ class Importer(object):
         first_row_line_number = 2
         line_count = 0
 
-        for row_number, row_data in enumerate(data, start=1):
+        for row_number, row_data in enumerate(data, start=2):
             line_number = first_row_line_number + line_count
             line_count += 1 + sum([
                 value.count('\n') for value in row_data.values()
