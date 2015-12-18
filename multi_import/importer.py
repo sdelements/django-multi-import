@@ -53,8 +53,8 @@ class Importer(object):
     def get_cached_query(self):
         return CachedQuery(self.queryset, self.lookup_fields)
 
-    def lookup_model_object(self, row):
-        return self.cached_query.lookup(self.lookup_fields, row.data)
+    def lookup_model_object(self, lookup_data):
+        return self.cached_query.lookup(self.lookup_fields, lookup_data)
 
     def enumerate_data(self, data):
         """
@@ -73,6 +73,16 @@ class Importer(object):
     def transform_input(self, input_data):
         pass
 
+    def get_lookup_data(self, row):
+        serializer = self.serializer()
+        fields = serializer.fields
+        data = {}
+        for key, value in row.data.items():
+            field = fields.get(key, None)
+            if field:
+                data[field.source] = value
+        return data
+
     def run(self, data, context=None):
         import_behaviour = self.import_behaviour(self.key,
                                                  self.model,
@@ -84,7 +94,8 @@ class Importer(object):
 
         for row in self.enumerate_data(input_data):
             try:
-                instance = self.lookup_model_object(row)
+                lookup_data = self.get_lookup_data(row)
+                instance = self.lookup_model_object(lookup_data)
             except MultipleObjectsReturned:
                 result.add_row_error(row,
                                      self.error_messages['multiple_matches'])
