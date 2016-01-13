@@ -32,7 +32,7 @@ class FileFormat(object):
         if self.read_file_as_string:
             return file_contents
 
-        file_handler.pos = 0
+        file_handler.seek(0)
         return file_handler
 
     def detect(self, file_handler, file_contents):
@@ -90,7 +90,7 @@ class FileReadWriter(object):
     )
 
     def read(self, file_handler):
-        file_handler.pos = 0
+        file_handler.seek(0)
         file_contents = file_handler.read()
 
         for file_format in self.file_formats:
