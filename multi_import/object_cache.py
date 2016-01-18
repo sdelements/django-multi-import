@@ -10,6 +10,17 @@ __all__ = [
 ]
 
 
+class CachedObject(object):
+
+    def __init__(self, obj):
+        self.obj = obj
+
+    def __hash__(self):
+        if hasattr(self.obj, 'pk') and not getattr(self.obj, 'pk', None):
+            return super(CachedObject, self).__hash__()
+        return self.obj.__hash__()
+
+
 class ObjectCache(defaultdict):
     multiple_objects_error = MultipleObjectsReturned
 
@@ -28,7 +39,9 @@ class ObjectCache(defaultdict):
         lookup_dict = self[field]
         key = unicode(value)
 
-        lookup_dict[key].add(instance)
+        lookup_dict[key].add(
+            CachedObject(instance)
+        )
 
     def get_lookup_value(self, field, value):
         if field not in self or value is None:
@@ -44,7 +57,7 @@ class ObjectCache(defaultdict):
         if len(instance_set) > 1:
             raise self.multiple_objects_error
 
-        return next(iter(instance_set))
+        return next(iter(instance_set)).obj
 
     def cache_instance(self, instance):
         for field in self.lookup_fields:
