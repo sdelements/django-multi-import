@@ -105,7 +105,7 @@ class Importer(object):
             serializer = self.serializer(instance=instance,
                                          data=row.data,
                                          context=context,
-                                         partial=True)
+                                         partial=instance is not None)
 
             if not serializer.might_have_changes:
                 import_behaviour.process_unchanged_object(result,
