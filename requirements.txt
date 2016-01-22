@@ -1,5 +1,5 @@
 Django>=1.4                             # BSD
-djangorestframework==3.2.3              # BSD
-six==1.6.1                              # MIT
+djangorestframework==3.3.2              # BSD
+six==1.10.0                             # MIT
 chardet==2.3.0                          # LGPL
 tablib==0.10.0                          # MIT
