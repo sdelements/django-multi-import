@@ -125,7 +125,7 @@ class ExportResult(object):
     def add_result(self, key, result):
         self.files[key] = result
 
-    def get_mimetype(self):
+    def get_content_type(self):
         if self.file_format == 'xls':
             return "application/vnd.ms-excel"
         else:
@@ -134,7 +134,7 @@ class ExportResult(object):
     def get_http_response(self):
         if len(self.files) == 1:
             key, file = self.files.items()[0]
-            mimetype = self.get_mimetype()
+            content_type = self.get_content_type()
             filename = "{0}.{1}".format(key, self.file_format)
 
         else:
@@ -143,10 +143,10 @@ class ExportResult(object):
                 for key, f in self.files.items():
                     fname = "{0}.{1}".format(key, self.file_format)
                     zf.writestr(fname, f.getvalue())
-            mimetype = "application-x-zip-compressed"
+            content_type = "application-x-zip-compressed"
             filename = self.zip_filename + ".zip"
 
-        response = HttpResponse(file.getvalue(), mimetype=mimetype)
+        response = HttpResponse(file.getvalue(), content_type=content_type)
         header = 'attachment; filename={0}'.format(filename)
         response['Content-Disposition'] = header
         return response
