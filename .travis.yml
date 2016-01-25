@@ -13,23 +13,16 @@ env:
     - DEFAULT_PYTHON=2.7
     - DEFAULT_DJANGO=1.8
   matrix:
-    - DJANGO=1.6
-    - DJANGO=1.7
     - DJANGO=1.8
+    - DJANGO=1.9
 
 matrix:
   exclude:
-    - python: 3.4
-      env: DJANGO=1.6
-    - python: 3.5
-      env: DJANGO=1.6
     - python: 3.5
       env: DJANGO=1.7
+    - python: 3.3
+      env: DJANGO=1.9
   include:
-    - python: 2.7
-      env: DJANGO=1.4
-    - python: 2.7
-      env: DJANGO=1.5
     - python: 2.7
       env: FLAKE8=1
 
