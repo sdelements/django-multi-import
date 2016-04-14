@@ -135,8 +135,7 @@ class ImportExportSerializer(FieldHelper, Serializer):
 
         return ModelClass(**validated_data)
 
-    def cache_new_object(self):
-        instance = self.create_temporary_instance()
+    def cache_instance(self, instance):
         new_object_cache = self.context.get('new_object_cache', None)
         if new_object_cache is not None:
             cache = new_object_cache[self.Meta.model]

@@ -92,7 +92,7 @@ class StandardImportBehaviour(BaseImportBehaviour, FieldHelper):
             yield result
 
     def process_new_object(self, result, row, serializer):
-        serializer.save()
+        return serializer.save()
 
     def process_updated_object(self, result, row, serializer):
         serializer.save()
@@ -123,6 +123,8 @@ class GenerateDiffBehaviour(StandardImportBehaviour):
         result.add_result(res,
                           row.line_number,
                           row.row_number)
+
+        return serializer.create_temporary_instance()
 
     def process_updated_object(self, result, row, serializer):
         res = {
