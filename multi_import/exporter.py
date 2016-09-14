@@ -25,12 +25,24 @@ class Exporter(FieldHelper):
     def get_header(self):
         return self.serializer.get_fields().keys()
 
+    def escape(self, s):
+        """
+        This escape method will prevent csv macro injection.
+        When excel sees a space, it treats the contents as a string, therefore preventing formulas from running.
+        """
+        blacklist = ['=', '+', '-', '@']
+
+        if s and s[0] in blacklist:
+            s = ' ' + s
+
+        return s
+
     def get_row(self, instance):
         results = []
         representation = self.serializer.to_representation(instance=instance)
         for column_name, value in representation.items():
             field = self.serializer.fields[column_name]
             results.append(
-                self.to_string_representation(field, value)
+                self.escape(self.to_string_representation(field, value))
             )
         return results
