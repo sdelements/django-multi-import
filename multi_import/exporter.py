@@ -28,7 +28,8 @@ class Exporter(FieldHelper):
     def escape(self, s):
         """
         This escape method will prevent csv macro injection.
-        When excel sees a space, it treats the contents as a string, therefore preventing formulas from running.
+        When excel sees a space, it treats the contents as a string,
+        therefore preventing formulas from running.
         """
         blacklist = ['=', '+', '-', '@']
 

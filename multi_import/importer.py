@@ -136,7 +136,9 @@ class Importer(object):
                                                         serializer)
 
             else:
-                instance = import_behaviour.process_new_object(result, row, serializer)
+                instance = import_behaviour.process_new_object(result,
+                                                               row,
+                                                               serializer)
                 serializer.cache_instance(instance)
 
         return result
