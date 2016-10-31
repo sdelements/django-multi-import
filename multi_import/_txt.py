@@ -8,11 +8,10 @@ extensions = ('txt',)
 
 
 DEFAULT_ENCODING = 'utf-8'
-DEFAULT_DELIMITER = ','
 
 
 def export_set(dataset, **kwargs):
-    """Returns CSV representation of Dataset."""
+    """Returns text representation of Dataset."""
     stream = StringIO()
 
     if not is_py3:
@@ -33,5 +32,5 @@ def import_set(dset, in_stream, headers=True, **kwargs):
     return NotImplementedError
 
 
-def detect(stream, delimiter=DEFAULT_DELIMITER):
+def detect(stream):
     return False
