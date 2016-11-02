@@ -9,6 +9,8 @@ from django.http import HttpResponse
 from tablib.core import Dataset
 from tablib.compat import BytesIO
 
+import multi_import._txt as txt
+
 from multi_import.multi_importer import (InvalidDatasetError,
                                          MultiImportExporter,
                                          MultiImportResult)
@@ -57,7 +59,7 @@ class FileFormat(object):
             raise InvalidFileError('Empty or Invalid File.')
 
     def write(self, dataset):
-        data = getattr(dataset, self.format.title)
+        data = self.format.export_set(dataset)
         f = BytesIO()
         f.write(data)
         return f
@@ -87,6 +89,7 @@ class FileReadWriter(object):
         FileFormat(xlsx),
         FileFormat(xls, read_file_as_string=True),
         CsvFormat(),
+        FileFormat(txt, read_file_as_string=True),
     )
 
     def read(self, file_handler):
@@ -128,8 +131,10 @@ class ExportResult(object):
     def get_content_type(self):
         if self.file_format == 'xls':
             return "application/vnd.ms-excel"
-        else:
+        elif self.file_format == 'csv':
             return "application/csv"
+        else:
+            return "text/plain"
 
     def get_http_response(self):
         if len(self.files) == 1:
