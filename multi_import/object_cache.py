@@ -25,14 +25,14 @@ class ObjectCache(defaultdict):
     multiple_objects_error = MultipleObjectsReturned
 
     def __init__(self, lookup_fields):
-        super(ObjectCache, self).__init__(self.default_factory)
+        super(ObjectCache, self).__init__(self._default_factory)
         self.lookup_fields = lookup_fields
         self.cached_object_count = 0
 
-    def default_factory(self):
+    def _default_factory(self):
         return defaultdict(set)
 
-    def add_lookup_value(self, field, value, instance):
+    def _add_lookup_value(self, field, value, instance):
         if not value:
             return
 
@@ -43,7 +43,7 @@ class ObjectCache(defaultdict):
             CachedObject(instance)
         )
 
-    def get_lookup_value(self, field, value):
+    def _get_lookup_value(self, field, value):
         if field not in self or value is None:
             return None
 
@@ -62,15 +62,15 @@ class ObjectCache(defaultdict):
     def cache_instance(self, instance):
         for field in self.lookup_fields:
             value = getattr(instance, field, None)
-            self.add_lookup_value(field, value, instance)
+            self._add_lookup_value(field, value, instance)
         self.cached_object_count += 1
 
     def get(self, field, value, default=None):
-        return self.get_lookup_value(field, value) or default
+        return self._get_lookup_value(field, value) or default
 
     def lookup_value(self, value):
         for field in self.lookup_fields:
-            result = self.get_lookup_value(field, value)
+            result = self._get_lookup_value(field, value)
             if result:
                 return result
         return None
@@ -78,7 +78,7 @@ class ObjectCache(defaultdict):
     def lookup(self, fields, data):
         for field in fields:
             value = data.get(field, None)
-            result = self.get_lookup_value(field, value)
+            result = self._get_lookup_value(field, value)
             if result:
                 return result
         return None
