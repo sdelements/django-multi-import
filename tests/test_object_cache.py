@@ -6,9 +6,10 @@ from tests.models import Book
 
 
 class MyClass(object):
-    def __init__(self, arg1=None, arg2=None):
+    def __init__(self, arg1=None, arg2=None, arg3=None):
         self.arg1 = arg1
         self.arg2 = arg2
+        self.arg3 = arg3
 
 
 class CachedObjectTests(TestCase):
@@ -67,6 +68,20 @@ class ObjectCacheTests(TestCase):
 
         self.assertEqual(obj, result)
 
+    def test_lookup__value_pair(self):
+        lookup_fields = ('arg1', ('arg2', 'arg3'))
+        cache = ObjectCache(lookup_fields)
+        obj1 = MyClass(1, 2, 3)
+        obj2 = MyClass(1, 2, 4)
+        obj3 = MyClass(1, 4, 3)
+
+        cache.cache_instance(obj1)
+        cache.cache_instance(obj2)
+        cache.cache_instance(obj3)
+        result = cache.lookup(lookup_fields, {'arg1': 2, 'arg2': 2, 'arg3': 3})
+
+        self.assertEqual(obj1, result)
+
     def test_lookup__not_match(self):
         lookup_fields = ('arg1',)
         cache = ObjectCache(lookup_fields)
@@ -98,6 +113,34 @@ class ObjectCacheTests(TestCase):
         result = cache.lookup_value(1)
 
         self.assertEqual(obj, result)
+
+    def test_lookup_value__value_pair(self):
+        lookup_fields = ('arg1', ('arg2', 'arg3'))
+        cache = ObjectCache(lookup_fields)
+        obj1 = MyClass(1, 2, 3)
+        obj2 = MyClass(1, 2, 4)
+        obj3 = MyClass(1, 4, 3)
+
+        cache.cache_instance(obj1)
+        cache.cache_instance(obj2)
+        cache.cache_instance(obj3)
+        result = cache.lookup_value([2, 3])
+
+        self.assertEqual(obj1, result)
+
+    def test_lookup_value__value_pair_not_found(self):
+        lookup_fields = ('arg1', ('arg2', 'arg3'))
+        cache = ObjectCache(lookup_fields)
+        obj1 = MyClass(1, 2, 3)
+        obj2 = MyClass(1, 2, 4)
+        obj3 = MyClass(1, 4, 3)
+
+        cache.cache_instance(obj1)
+        cache.cache_instance(obj2)
+        cache.cache_instance(obj3)
+        result = cache.lookup_value([1, 3])
+
+        self.assertIsNone(result)
 
     def test_lookup_value__not_found(self):
         lookup_fields = ('arg1',)

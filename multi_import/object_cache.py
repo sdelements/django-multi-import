@@ -1,6 +1,7 @@
 from collections import defaultdict
 
 from django.core.exceptions import MultipleObjectsReturned
+import six
 from tablib.compat import unicode
 
 
@@ -32,37 +33,67 @@ class ObjectCache(defaultdict):
     def _default_factory(self):
         return defaultdict(set)
 
-    def _add_lookup_value(self, field, value, instance):
+    def _add_lookup_value(self, field, value, cached_object):
         if not value:
             return
 
         lookup_dict = self[field]
         key = unicode(value)
 
-        lookup_dict[key].add(
-            CachedObject(instance)
-        )
+        lookup_dict[key].add(cached_object)
+
+    def _check_instance_set(self, instance_set):
+        if len(instance_set) > 1:
+            raise self.multiple_objects_error
+        return None
 
     def _get_lookup_value(self, field, value):
-        if field not in self or value is None:
-            return None
+        if isinstance(field, six.string_types):
+            field = (field,)
+            value = (value,)
 
-        lookup_dict = self[field]
-        key = unicode(value)
+        zipped_values = list(zip(field, value))
 
-        instance_set = lookup_dict[key]
+        for f, v in zipped_values:
+            if f not in self or v is None:
+                return None
+
+        instance_sets = [
+            self[f][unicode(v)]
+            for f, v in zipped_values
+        ]
+
+        for s in instance_sets:
+            if not s:
+                return None
+
+        instance_set = set.intersection(*instance_sets)
+
         if not instance_set:
             return None
 
-        if len(instance_set) > 1:
-            raise self.multiple_objects_error
+        result = self._check_instance_set(instance_set)
+        if result:
+            return result
 
         return next(iter(instance_set)).obj
 
     def cache_instance(self, instance):
-        for field in self.lookup_fields:
+        fields_to_cache = set(
+            item for sublist in
+            (
+                (fields,) if isinstance(fields, six.string_types) else fields
+                for fields in self.lookup_fields
+            )
+            for item in sublist
+        )
+
+        cached_instance = CachedObject(instance)
+
+        for field in fields_to_cache:
             value = getattr(instance, field, None)
-            self._add_lookup_value(field, value, instance)
+            self._add_lookup_value(field, value, cached_instance)
+
         self.cached_object_count += 1
 
     def get(self, field, value, default=None):
@@ -77,7 +108,10 @@ class ObjectCache(defaultdict):
 
     def lookup(self, fields, data):
         for field in fields:
-            value = data.get(field, None)
+            if isinstance(field, six.string_types):
+                value = data.get(field, None)
+            else:
+                value = [data.get(f) for f in field]
             result = self._get_lookup_value(field, value)
             if result:
                 return result
