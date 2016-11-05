@@ -42,7 +42,7 @@ class ObjectCacheTests(TestCase):
         obj = MyClass(1, 2)
         default = MyClass()
 
-        cache.cache_instance(obj)
+        cache.add(obj)
         result = cache.get('arg1', 1, default)
 
         self.assertEqual(obj, result)
@@ -53,116 +53,88 @@ class ObjectCacheTests(TestCase):
         obj = MyClass()
         default = MyClass(1, 2)
 
-        cache.cache_instance(obj)
+        cache.add(obj)
         result = cache.get('arg1', None, default)
 
         self.assertEqual(default, result)
 
-    def test_lookup(self):
+    def test_find(self):
         lookup_fields = ('arg1',)
         cache = ObjectCache(lookup_fields)
         obj = MyClass(1, 2)
 
-        cache.cache_instance(obj)
-        result = cache.lookup(lookup_fields, {'arg1': 1})
+        cache.add(obj)
+        result = cache.find(1)
 
         self.assertEqual(obj, result)
 
-    def test_lookup__value_pair(self):
-        lookup_fields = ('arg1', ('arg2', 'arg3'))
-        cache = ObjectCache(lookup_fields)
-        obj1 = MyClass(1, 2, 3)
-        obj2 = MyClass(1, 2, 4)
-        obj3 = MyClass(1, 4, 3)
-
-        cache.cache_instance(obj1)
-        cache.cache_instance(obj2)
-        cache.cache_instance(obj3)
-        result = cache.lookup(lookup_fields, {'arg1': 2, 'arg2': 2, 'arg3': 3})
-
-        self.assertEqual(obj1, result)
-
-    def test_lookup__not_match(self):
+    def test_find__not_found(self):
         lookup_fields = ('arg1',)
         cache = ObjectCache(lookup_fields)
         obj = MyClass(1, 2)
 
-        cache.cache_instance(obj)
-        result = cache.lookup(lookup_fields, {'arg1': 2})
+        cache.add(obj)
+        result = cache.find(2)
 
         self.assertIsNone(result)
 
-    def test_lookup__multiple_results(self):
+    def test_find__multiple_results(self):
         lookup_fields = ('arg1',)
         cache = ObjectCache(lookup_fields)
         obj1 = MyClass(1, 2)
         obj2 = MyClass(1, 3)
 
-        cache.cache_instance(obj1)
-        cache.cache_instance(obj2)
+        cache.add(obj1)
+        cache.add(obj2)
 
         with self.assertRaises(cache.multiple_objects_error):
-            cache.lookup(lookup_fields, {'arg1': 1})
+            cache.find(1)
 
-    def test_lookup_value(self):
+    def test_match(self):
         lookup_fields = ('arg1',)
         cache = ObjectCache(lookup_fields)
         obj = MyClass(1, 2)
 
-        cache.cache_instance(obj)
-        result = cache.lookup_value(1)
+        cache.add(obj)
+        result = cache.match({'arg1': 1})
 
         self.assertEqual(obj, result)
 
-    def test_lookup_value__value_pair(self):
+    def test_match__value_pair(self):
         lookup_fields = ('arg1', ('arg2', 'arg3'))
         cache = ObjectCache(lookup_fields)
         obj1 = MyClass(1, 2, 3)
         obj2 = MyClass(1, 2, 4)
         obj3 = MyClass(1, 4, 3)
 
-        cache.cache_instance(obj1)
-        cache.cache_instance(obj2)
-        cache.cache_instance(obj3)
-        result = cache.lookup_value([2, 3])
+        cache.add(obj1)
+        cache.add(obj2)
+        cache.add(obj3)
+        result = cache.match({'arg1': 2, 'arg2': 2, 'arg3': 3})
 
         self.assertEqual(obj1, result)
 
-    def test_lookup_value__value_pair_not_found(self):
-        lookup_fields = ('arg1', ('arg2', 'arg3'))
-        cache = ObjectCache(lookup_fields)
-        obj1 = MyClass(1, 2, 3)
-        obj2 = MyClass(1, 2, 4)
-        obj3 = MyClass(1, 4, 3)
-
-        cache.cache_instance(obj1)
-        cache.cache_instance(obj2)
-        cache.cache_instance(obj3)
-        result = cache.lookup_value([1, 3])
-
-        self.assertIsNone(result)
-
-    def test_lookup_value__not_found(self):
+    def test_match__not_match(self):
         lookup_fields = ('arg1',)
         cache = ObjectCache(lookup_fields)
         obj = MyClass(1, 2)
 
-        cache.cache_instance(obj)
-        result = cache.lookup_value(2)
+        cache.add(obj)
+        result = cache.match({'arg1': 2})
 
         self.assertIsNone(result)
 
-    def test_lookup_value__multiple_results(self):
+    def test_match__multiple_results(self):
         lookup_fields = ('arg1',)
         cache = ObjectCache(lookup_fields)
         obj1 = MyClass(1, 2)
         obj2 = MyClass(1, 3)
 
-        cache.cache_instance(obj1)
-        cache.cache_instance(obj2)
+        cache.add(obj1)
+        cache.add(obj2)
 
         with self.assertRaises(cache.multiple_objects_error):
-            cache.lookup_value(1)
+            cache.match({'arg1': 1})
 
     def test_len(self):
         lookup_fields = ('arg1',)
@@ -170,5 +142,5 @@ class ObjectCacheTests(TestCase):
 
         for i in range(1, 10):
             obj = MyClass(i)
-            cache.cache_instance(obj)
+            cache.add(obj)
             self.assertEqual(len(cache), i)

@@ -22,103 +22,96 @@ class CachedObject(object):
         return self.obj.__hash__()
 
 
-class ObjectCache(defaultdict):
+class ObjectCache(object):
     multiple_objects_error = MultipleObjectsReturned
 
     def __init__(self, lookup_fields):
-        super(ObjectCache, self).__init__(self._default_factory)
+        self.cache_fields = self._flatten_fields(lookup_fields)
         self.lookup_fields = lookup_fields
-        self.cached_object_count = 0
+        self.object_count = 0
+        self.objects = defaultdict(lambda: defaultdict(set))
 
-    def _default_factory(self):
-        return defaultdict(set)
+    def __len__(self):
+        return self.object_count
 
-    def _add_lookup_value(self, field, value, cached_object):
-        if not value:
-            return
+    def add(self, obj):
+        cached_obj = CachedObject(obj)
 
-        lookup_dict = self[field]
-        key = unicode(value)
+        fields_to_cache = (
+            (field, value)
+            for field, value in
+            (
+                (field, getattr(obj, field, None))
+                for field in self.cache_fields
+            )
+            if value is not None
+        )
 
-        lookup_dict[key].add(cached_object)
+        for field, value in fields_to_cache:
+            self.objects[field][unicode(value)].add(cached_obj)
 
-    def _check_instance_set(self, instance_set):
-        if len(instance_set) > 1:
-            raise self.multiple_objects_error
-        return None
+        self.object_count += 1
 
-    def _get_lookup_value(self, field, value):
+    def get(self, field, value, default=None):
         if isinstance(field, six.string_types):
             field = (field,)
             value = (value,)
 
         zipped_values = list(zip(field, value))
 
-        for f, v in zipped_values:
-            if f not in self or v is None:
-                return None
+        if any(f not in self.objects or v is None for f, v in zipped_values):
+            return default
 
-        instance_sets = [
-            self[f][unicode(v)]
+        result_sets = [
+            self.objects[f][unicode(v)]
             for f, v in zipped_values
         ]
 
-        for s in instance_sets:
-            if not s:
-                return None
+        results = [
+            result.obj
+            for result in set.intersection(*result_sets)
+        ]
 
-        instance_set = set.intersection(*instance_sets)
+        return self.to_result(results) or default
 
-        if not instance_set:
-            return None
-
-        result = self._check_instance_set(instance_set)
-        if result:
-            return result
-
-        return next(iter(instance_set)).obj
-
-    def cache_instance(self, instance):
-        fields_to_cache = set(
-            item for sublist in
-            (
-                (fields,) if isinstance(fields, six.string_types) else fields
-                for fields in self.lookup_fields
-            )
-            for item in sublist
+    def find(self, value, fields=None):
+        fields = fields or self.lookup_fields
+        single_fields = (
+            field for field in fields if isinstance(field, six.string_types)
         )
-
-        cached_instance = CachedObject(instance)
-
-        for field in fields_to_cache:
-            value = getattr(instance, field, None)
-            self._add_lookup_value(field, value, cached_instance)
-
-        self.cached_object_count += 1
-
-    def get(self, field, value, default=None):
-        return self._get_lookup_value(field, value) or default
-
-    def lookup_value(self, value):
-        for field in self.lookup_fields:
-            result = self._get_lookup_value(field, value)
+        for field in single_fields:
+            result = self.get(field, value)
             if result:
                 return result
         return None
 
-    def lookup(self, fields, data):
+    def match(self, data, fields=None):
+        fields = fields or self.lookup_fields
         for field in fields:
             if isinstance(field, six.string_types):
                 value = data.get(field, None)
             else:
                 value = [data.get(f) for f in field]
-            result = self._get_lookup_value(field, value)
+            result = self.get(field, value)
             if result:
                 return result
         return None
 
-    def __len__(self):
-        return self.cached_object_count
+    def to_result(self, results):
+        if len(results) > 1:
+            raise self.multiple_objects_error
+
+        return next(iter(results), None)
+
+    def _flatten_fields(self, fields):
+        return set(
+            item for sublist in
+            (
+                (item,) if isinstance(item, six.string_types) else item
+                for item in fields
+            )
+            for item in sublist
+        )
 
 
 class CachedQuery(ObjectCache):
@@ -128,19 +121,14 @@ class CachedQuery(ObjectCache):
         self.queryset = queryset
         self.multiple_objects_error = queryset.model.MultipleObjectsReturned
 
-    def execute_query(self):
-        for instance in self.queryset:
-            self.cache_instance(instance)
-        self.queried = True
-
-    def ensure_queried(self):
-        if not self.queried:
-            self.execute_query()
-
     def get(self, field, value, default=None):
-        self.ensure_queried()
+        self._ensure_queried()
         return super(CachedQuery, self).get(field, value, default)
 
-    def lookup(self, fields, data):
-        self.ensure_queried()
-        return super(CachedQuery, self).lookup(fields, data)
+    def _ensure_queried(self):
+        if self.queried:
+            return
+
+        for instance in self.queryset:
+            self.add(instance)
+        self.queried = True

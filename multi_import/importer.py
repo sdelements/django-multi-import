@@ -54,7 +54,7 @@ class Importer(object):
         return CachedQuery(self.queryset, self.lookup_fields)
 
     def lookup_model_object(self, lookup_data):
-        return self.cached_query.lookup(self.lookup_fields, lookup_data)
+        return self.cached_query.match(lookup_data, self.lookup_fields)
 
     def enumerate_data(self, data):
         """

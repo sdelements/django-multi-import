@@ -61,7 +61,7 @@ class LookupRelatedField(relations.RelatedField):
     def search_new_objects(self, value):
         new_object_cache = self.new_object_cache
         if new_object_cache:
-            match = new_object_cache.lookup_value(value)
+            match = new_object_cache.find(value, self.lookup_fields)
             if match:
                 return match
 
