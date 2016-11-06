@@ -23,7 +23,11 @@ class Exporter(FieldHelper):
         return dataset
 
     def get_header(self):
-        return self.serializer.get_fields().keys()
+        return [
+            field_name
+            for field_name, field in self.serializer.get_fields().items()
+            if not field.write_only
+        ]
 
     def escape(self, s):
         """
