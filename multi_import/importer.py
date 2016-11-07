@@ -83,14 +83,20 @@ class Importer(object):
                 data[field.source] = value
         return data
 
+    def cache_instance(self, context, instance):
+        new_object_cache = context.get('new_object_cache', None)
+        if new_object_cache is not None:
+            cache = new_object_cache[self.model]
+            cache.add(instance)
+
     def run(self, data, context=None):
         import_behaviour = self.import_behaviour(self.key,
                                                  self.model,
                                                  self.serializer)
 
-        result = import_behaviour.get_result_object(data)
-
+        context = self.get_serializer_context(context)
         input_data = import_behaviour.transform_input(data)
+        result = import_behaviour.get_result_object(data)
 
         for row in self.enumerate_data(input_data):
             try:
@@ -101,7 +107,6 @@ class Importer(object):
                                      self.error_messages['multiple_matches'])
                 continue
 
-            context = self.get_serializer_context(context)
             serializer = self.serializer(instance=instance,
                                          data=row.data,
                                          context=context,
@@ -114,9 +119,14 @@ class Importer(object):
                 continue
 
             is_valid = serializer.is_valid()
-            update_chk = instance and (serializer.has_changes or not is_valid)
 
-            if update_chk and not self.can_update_object(instance):
+            cannot_update = (
+                instance
+                and (serializer.has_changes or not is_valid)
+                and not self.can_update_object(instance)
+            )
+
+            if cannot_update:
                 result.add_row_error(row, self.error_messages['cannot_update'])
                 continue
 
@@ -139,6 +149,6 @@ class Importer(object):
                 instance = import_behaviour.process_new_object(result,
                                                                row,
                                                                serializer)
-                serializer.cache_instance(instance)
+                self.cache_instance(context, instance)
 
         return result
