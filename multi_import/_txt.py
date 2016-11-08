@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from tablib.compat import is_py3, StringIO
+from tablib.compat import StringIO
 
 
 title = 'txt'
@@ -13,9 +13,6 @@ DEFAULT_ENCODING = 'utf-8'
 def export_set(dataset, **kwargs):
     """Returns text representation of Dataset."""
     stream = StringIO()
-
-    if not is_py3:
-        kwargs.setdefault('encoding', DEFAULT_ENCODING)
 
     for row in dataset._package():
         for key, val in row.iteritems():
