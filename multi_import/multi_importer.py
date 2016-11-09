@@ -1,6 +1,6 @@
 from django.db import transaction
 
-from multi_import import import_behaviours
+from multi_import.importer import Result
 from multi_import.object_cache import ObjectCache
 
 
@@ -17,9 +17,7 @@ class MultiImportResult(object):
     Results from an attempt to generate an import diff for several files.
     """
     def __init__(self):
-        self.diff = {
-            'files': []
-        }
+        self.files = []
         self.errors = {}
 
     @property
@@ -30,12 +28,40 @@ class MultiImportResult(object):
         if result.valid is False:
             self.errors[filename] = result.errors
 
-        diff = result.result.copy()
-        diff['filename'] = filename
-        self.diff['files'].append(diff)
+        self.files.append({
+            'filename': filename,
+            'result': result
+        })
 
     def add_error(self, filename, message):
         self.errors[filename] = [{'message': message}]
+
+    def num_changes(self):
+        return sum(
+            len(file['result'].changes) for file in self.files
+        )
+
+    def has_changes(self):
+        return any(file['result'].changes for file in self.files)
+
+    def to_json(self):
+        return {
+            'files': [
+                {
+                    'filename': file['filename'],
+                    'result': file['result'].to_json(),
+                }
+                for file in self.files
+            ]
+        }
+
+    @classmethod
+    def from_json(cls, data):
+        result = cls()
+        for file in data['files']:
+            result.add_result(file['filename'],
+                              Result.from_json(file['result']))
+        return result
 
 
 class ExportResult(object):
@@ -60,10 +86,6 @@ class MultiImportExporter(object):
         'invalid_key': u'Columns should match those in the import template.',
         'invalid_export_keys': u'Invalid keys {0} for exporting'
     }
-
-    standard_import_behaviour = import_behaviours.StandardImportBehaviour
-    import_diff_generator = import_behaviours.GenerateDiffBehaviour
-    import_diff_applier = import_behaviours.ApplyDiffBehaviour
 
     def __init__(self):
         import_export_managers = [
@@ -118,10 +140,23 @@ class MultiImportExporter(object):
             cache[importer.model] = ObjectCache(importer.lookup_fields)
         return cache
 
-    def import_data(self, data, import_behaviour=None):
-        if import_behaviour is None:
-            import_behaviour = self.standard_import_behaviour
+    def transform_multi_input(self, input_data):
+        if isinstance(input_data, MultiImportResult):
+            for importer in self.import_export_managers:
+                datasets = (
+                    f for f in input_data.files
+                    if f['result'].key == importer.key
+                )
+                for dataset in datasets:
+                    yield importer, dataset['filename'], dataset['result']
+            return
 
+        for importer in self.import_export_managers:
+            for file_data in input_data.get(importer.model, []):
+                filename, data = file_data
+                yield importer, filename, data
+
+    def import_data(self, data, commit=False):
         results = MultiImportResult()
 
         try:
@@ -130,29 +165,19 @@ class MultiImportExporter(object):
                     'new_object_cache': self.get_new_object_cache()
                 }
 
-                bound_importers = import_behaviour.transform_multi_input(
-                    self.import_export_managers, data
-                )
+                bound_importers = self.transform_multi_input(data)
 
                 for importer, filename, dataset in bound_importers:
-                    result = importer.import_data(
-                        import_behaviour, dataset, context
-                    )
+                    result = importer.import_data(dataset, context)
                     results.add_result(filename, result)
 
-                if not results.valid or not import_behaviour.save_changes:
+                if not results.valid or not commit:
                     raise ImportInvalidError
 
         except ImportInvalidError:
             pass
 
         return results
-
-    def diff_generate(self, data):
-        return self.import_data(data, self.import_diff_generator)
-
-    def diff_apply(self, diff_data):
-        return self.import_data(diff_data, self.import_diff_applier)
 
     def export_datasets(self, keys=None, template=False):
         if keys:

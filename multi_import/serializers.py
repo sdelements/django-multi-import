@@ -71,7 +71,8 @@ class ImportExportSerializer(FieldHelper, Serializer):
         fields = [
             (field_name, field)
             for field_name, field in self.fields.items()
-            if field_name in self.initial_data and not field.read_only
+            if field_name in self.initial_data
+            and not field.read_only and not field.write_only
         ]
 
         rep = self.to_representation(self.instance)
@@ -97,6 +98,9 @@ class ImportExportSerializer(FieldHelper, Serializer):
         orig = self.to_representation(self.instance) if self.instance else {}
 
         for field_name, field in self.fields.items():
+            if field.read_only or field.write_only:
+                continue
+
             source = unicode(field.source)
 
             if source not in self.validated_data:

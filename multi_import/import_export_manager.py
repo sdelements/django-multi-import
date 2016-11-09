@@ -30,9 +30,8 @@ class ImportExportManager(object):
     def get_exporter(self):
         return self.exporter(**self.get_exporter_kwargs())
 
-    def get_importer_kwargs(self, import_behaviour):
+    def get_importer_kwargs(self):
         return {
-            'import_behaviour': import_behaviour,
             'key': self.key,
             'model': self.model,
             'lookup_fields': self.lookup_fields,
@@ -40,9 +39,9 @@ class ImportExportManager(object):
             'serializer': self.serializer
         }
 
-    def get_importer(self, import_behaviour):
+    def get_importer(self):
         return self.importer(
-            **self.get_importer_kwargs(import_behaviour)
+            **self.get_importer_kwargs()
         )
 
     def get_queryset(self):
@@ -67,6 +66,6 @@ class ImportExportManager(object):
         exporter = self.get_exporter()
         return exporter.export_dataset(template)
 
-    def import_data(self, import_behaviour, data, context=None):
-        importer = self.get_importer(import_behaviour)
+    def import_data(self, data, context=None):
+        importer = self.get_importer()
         return importer.run(data, context)
