@@ -1,96 +1,18 @@
 import zipfile
 
-import chardet
 import tablib
-import tablib.formats._csv as csv
-import tablib.formats._xls as xls
-import tablib.formats._xlsx as xlsx
 from django.http import HttpResponse
-from tablib.core import Dataset
 from tablib.compat import BytesIO
 
-import multi_import._txt as txt
-
+from multi_import.exceptions import InvalidFileError
+from multi_import.formats import all_formats
 from multi_import.multi_importer import (InvalidDatasetError,
                                          MultiImportExporter,
                                          MultiImportResult)
-from multi_import.utils import normalize_string
-
-
-class InvalidFileError(Exception):
-    pass
-
-
-class FileFormat(object):
-    def __init__(self, file_format, read_file_as_string=False):
-        self.format = file_format
-        self.read_file_as_string = read_file_as_string
-
-    @property
-    def key(self):
-        return self.format.title
-
-    def get_file_object(self, file_handler, file_contents):
-        if self.read_file_as_string:
-            return file_contents
-
-        file_handler.seek(0)
-        return file_handler
-
-    def detect(self, file_handler, file_contents):
-        file_object = self.get_file_object(file_handler, file_contents)
-        try:
-            return self.format.detect(file_object)
-        except AttributeError:
-            pass
-        return False
-
-    def pre_read(self, file_object):
-        return file_object
-
-    def read(self, file_handler, file_contents):
-        file_object = self.get_file_object(file_handler, file_contents)
-        file_object = self.pre_read(file_object)
-        try:
-            dataset = Dataset()
-            self.format.import_set(dataset, self.pre_read(file_object))
-            return dataset
-        except AttributeError:
-            raise InvalidFileError('Empty or Invalid File.')
-
-    def write(self, dataset):
-        data = self.format.export_set(dataset)
-        f = BytesIO()
-        f.write(data)
-        return f
-
-
-class CsvFormat(FileFormat):
-    def __init__(self):
-        super(CsvFormat, self).__init__(csv, read_file_as_string=True)
-
-    def ensure_unicode(self, file_contents):
-        charset = chardet.detect(file_contents)
-        encoding = charset['encoding']
-        encoding_confidence = charset['confidence']
-        if encoding and encoding_confidence > 0.5:
-            return file_contents.decode(encoding.lower()).encode('utf8')
-        else:
-            raise InvalidFileError('Unknown file type.')
-
-    def pre_read(self, file_object):
-        file_object = self.ensure_unicode(file_object)
-        file_object = normalize_string(file_object)
-        return file_object
 
 
 class FileReadWriter(object):
-    file_formats = (
-        FileFormat(xlsx),
-        FileFormat(xls, read_file_as_string=True),
-        CsvFormat(),
-        FileFormat(txt, read_file_as_string=True),
-    )
+    file_formats = all_formats
 
     def read(self, file_handler):
         file_handler.seek(0)
