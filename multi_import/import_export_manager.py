@@ -1,3 +1,4 @@
+from multi_import import serializers
 from multi_import.exporter import Exporter
 from multi_import.importer import Importer
 
@@ -19,7 +20,7 @@ class ImportExportManager(object):
         """
         Returns a list of related models that this importer is dependent on.
         """
-        return self.serializer().dependencies
+        return serializers.get_dependencies(self.serializer())
 
     def get_exporter_kwargs(self):
         return {
@@ -48,10 +49,10 @@ class ImportExportManager(object):
         queryset = self.model.objects
         serializer = self.serializer()
 
-        for field in serializer.related_fields():
+        for field in serializers.get_related_fields(serializer):
             queryset = queryset.select_related(field.source)
 
-        for field in serializer.many_related_fields():
+        for field in serializers.get_many_related_fields(serializer):
             queryset = queryset.prefetch_related(field.source)
 
         return queryset

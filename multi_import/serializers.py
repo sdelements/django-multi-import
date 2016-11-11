@@ -1,177 +1,159 @@
 from collections import namedtuple
 
 from rest_framework import relations
-from rest_framework.serializers import Serializer
-from rest_framework.utils import model_meta
 import six
 from tablib.compat import unicode
 
-from multi_import import FieldHelper
+from multi_import import fields
 from multi_import.utils import normalize_string
-
-
-__all__ = [
-    'ImportExportSerializer',
-]
 
 
 FieldChange = namedtuple('FieldChange', ['field', 'old', 'new', 'value'])
 
 
-class ImportExportSerializer(FieldHelper, Serializer):
+def get_related_fields(serializer):
+    return [
+        field for field in serializer.fields.values()
+        if isinstance(field, relations.RelatedField)
+    ]
 
-    @property
-    def dependencies(self):
-        """
-        Returns a list of related models that this importer is dependent on.
-        """
-        result = []
 
-        fields = [
-            (field, field.queryset)
-            for field in self.related_fields()
-        ]
+def get_many_related_fields(serializer):
+    return [
+        field for field in serializer.fields.values()
+        if isinstance(field, relations.ManyRelatedField)
+    ]
 
-        fields.extend([
-            (field, field.child_relation.queryset)
-            for field in self.many_related_fields()
-        ])
 
-        for field, queryset in fields:
-            if field.read_only:
-                continue
+def get_dependencies(serializer):
+    """
+    Returns a list of related models that a serializer is dependent on.
+    """
+    result = []
 
-            if hasattr(queryset, 'model'):
-                model = queryset.model
-            else:
-                model = queryset.related_model
+    field_querysets = [
+        (field, field.queryset)
+        for field in get_related_fields(serializer)
+    ]
 
-            result.append(model)
+    field_querysets.extend([
+        (field, field.child_relation.queryset)
+        for field in get_many_related_fields(serializer)
+    ])
 
-        return result
+    for field, queryset in field_querysets:
+        if field.read_only:
+            continue
 
-    def related_fields(self):
-        return [
-            field for field in self.fields.values()
-            if isinstance(field, relations.RelatedField)
-        ]
+        if hasattr(queryset, 'model'):
+            model = queryset.model
+        else:
+            model = queryset.related_model
 
-    def many_related_fields(self):
-        return [
-            field for field in self.fields.values()
-            if isinstance(field, relations.ManyRelatedField)
-        ]
+        result.append(model)
 
-    @property
-    def has_changes(self):
-        return bool(self.changed_fields)
+    return result
 
-    @property
-    def might_have_changes(self):
-        fields = [
-            (field_name, field)
-            for field_name, field in self.fields.items()
-            if field_name in self.initial_data
-            and not field.read_only and not field.write_only
-        ]
 
-        rep = self.to_representation(self.instance)
+def get_original_representation(serializer):
+    if serializer.instance:
+        return serializer.to_representation(serializer.instance)
+    return {}
 
-        initial = {
-            field_name: self.to_string_representation(
-                field, self.initial_data[field_name]
-            )
-            for field_name, field in fields
-        }
 
-        result = {
-            field_name: self.to_string_representation(field, rep[field_name])
-            for field_name, field in fields
-        }
+def get_changed_fields(serializer):
+    result = {}
 
-        return result != initial
+    orig = get_original_representation(serializer)
 
-    @property
-    def changed_fields(self):
-        result = {}
+    for field_name, field in serializer.fields.items():
+        if field.read_only or field.write_only:
+            continue
 
-        orig = self.to_representation(self.instance) if self.instance else {}
+        source = unicode(field.source)
 
-        for field_name, field in self.fields.items():
-            if field.read_only or field.write_only:
-                continue
+        if source not in serializer.validated_data:
+            continue
 
-            source = unicode(field.source)
+        old_value = orig[field_name] if field_name in orig else None
 
-            if source not in self.validated_data:
-                continue
+        value = serializer.validated_data[source]
+        new_value = field.to_representation(value)
 
-            old_value = orig[field_name] if field_name in orig else None
+        # TODO: Move this to .to_representation()?
+        if isinstance(old_value, six.string_types):
+            old_value = normalize_string(old_value)
 
-            value = self.validated_data[source]
-            new_value = field.to_representation(value)
+        if old_value != new_value:
+            result[field_name] = FieldChange(field,
+                                             old_value,
+                                             new_value,
+                                             value)
 
-            # TODO: Move this to .to_representation()?
-            if isinstance(old_value, six.string_types):
-                old_value = normalize_string(old_value)
+    return result
 
-            if old_value != new_value:
-                result[field_name] = FieldChange(field,
-                                                 old_value,
-                                                 new_value,
-                                                 value)
 
-        return result
+def has_changes(serializer):
+    return bool(get_changed_fields(serializer))
 
-    def create_temporary_instance(self):
-        validated_data = self.validated_data.copy()
 
-        ModelClass = self.Meta.model
+def might_have_changes(serializer):
+    submitted_fields = [
+        (field_name, field)
+        for field_name, field in serializer.fields.items()
+        if field_name in serializer.initial_data
+        and not field.read_only and not field.write_only
+    ]
 
-        # Remove many-to-many relationships from validated_data.
-        # They are not valid arguments to the default `.create()` method,
-        # as they require that the instance has already been saved.
-        info = model_meta.get_field_info(ModelClass)
-        many_to_many = {}
-        for field_name, relation_info in info.relations.items():
-            if relation_info.to_many and (field_name in validated_data):
-                many_to_many[field_name] = validated_data.pop(field_name)
+    rep = serializer.to_representation(serializer.instance)
 
-        return ModelClass(**validated_data)
+    initial = {
+        field_name: fields.to_string_representation(
+            field, serializer.initial_data[field_name]
+        )
+        for field_name, field in submitted_fields
+    }
 
-    def get_diff_data(self):
-        if not self.has_changes:
-            return None
+    result = {
+        field_name: fields.to_string_representation(field, rep[field_name])
+        for field_name, field in submitted_fields
+    }
 
-        data = {}
+    return result != initial
 
-        changed_fields = self.changed_fields
 
-        orig = self.to_representation(self.instance) if self.instance else {}
+def get_diff_data(serializer):
+    if not has_changes(serializer):
+        return None
 
-        for column_name in self.initial_data:
-            field = self.fields.get(column_name, None)
-            if not field:
-                continue
+    data = {}
 
-            data[column_name] = field_data = []
+    changed_fields = get_changed_fields(serializer)
+    orig = get_original_representation(serializer)
 
-            if column_name in orig:
-                field_data.append(
-                    self.to_string_representation(field, orig[column_name])
-                )
-            else:
-                field_data.append(u'')
+    for column_name in serializer.initial_data:
+        field = serializer.fields.get(column_name, None)
+        if not field:
+            continue
 
-            field_change = changed_fields.get(column_name, None)
+        data[column_name] = field_data = []
 
-            if not field_change:
-                continue
-
-            new_value = field_change.new
-
+        if column_name in orig:
             field_data.append(
-                self.to_string_representation(field, new_value)
+                fields.to_string_representation(field, orig[column_name])
             )
+        else:
+            field_data.append(u'')
 
-        return data
+        field_change = changed_fields.get(column_name, None)
+
+        if not field_change:
+            continue
+
+        new_value = field_change.new
+
+        field_data.append(
+            fields.to_string_representation(field, new_value)
+        )
+
+    return data

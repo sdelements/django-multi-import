@@ -3,6 +3,7 @@ from rest_framework.settings import api_settings
 from six import string_types
 from tablib import Dataset
 
+from multi_import import serializers
 from multi_import.fields import FieldHelper
 from multi_import.object_cache import CachedQuery
 from multi_import.utils import normalize_string
@@ -303,16 +304,17 @@ class Importer(object):
                                      context=context,
                                      partial=data.instance is not None)
 
-        if not serializer.might_have_changes:
+        if not serializers.might_have_changes(serializer):
             row.status = RowStatus.unchanged
             data.processed = True
             return
 
         is_valid = serializer.is_valid()
+        has_changes = serializers.has_changes(serializer)
 
         cannot_update = (
             data.instance
-            and (serializer.has_changes or not is_valid)
+            and (has_changes or not is_valid)
             and not self.can_update_object(data.instance)
         )
 
@@ -326,20 +328,20 @@ class Importer(object):
             data.processed = True
             return
 
-        if not serializer.has_changes:
+        if not has_changes:
             row.status = RowStatus.unchanged
             data.processed = True
             return
 
         if serializer.instance:
             row.status = RowStatus.update
-            row.diff = serializer.get_diff_data()
+            row.diff = serializers.get_diff_data(serializer)
             serializer.save()
             data.processed = True
 
         else:
             row.status = RowStatus.new
-            row.diff = serializer.get_diff_data()
+            row.diff = serializers.get_diff_data(serializer)
             data.instance = serializer.save()
             data.processed = True
             self.cache_instance(context, data.instance)

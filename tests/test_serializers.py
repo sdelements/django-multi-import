@@ -1,13 +1,13 @@
 from django.test import TestCase
 from rest_framework.serializers import ModelSerializer
 
+from multi_import import serializers
 from multi_import.relations import LookupRelatedField
-from multi_import.serializers import ImportExportSerializer
 
 from tests.models import Book, Chapter, Person
 
 
-class BookSerializer(ImportExportSerializer, ModelSerializer):
+class BookSerializer(ModelSerializer):
 
     class Meta:
         model = Book
@@ -22,7 +22,7 @@ class BookSerializer(ImportExportSerializer, ModelSerializer):
         read_only_fields = ('id', 'author')
 
 
-class PersonSerializer(ImportExportSerializer, ModelSerializer):
+class PersonSerializer(ModelSerializer):
 
     serializer_related_field = LookupRelatedField
 
@@ -48,22 +48,22 @@ class PersonSerializer(ImportExportSerializer, ModelSerializer):
         read_only_fields = ('id', 'name')
 
 
-class ImportExportSerializerTests(TestCase):
+class SerializerTests(TestCase):
 
     def test_returns_correct_dependencies(self):
         serializer = BookSerializer()
-
-        self.assertEqual(serializer.dependencies, [Chapter])
+        dependencies = serializers.get_dependencies(serializer)
+        self.assertEqual(dependencies, [Chapter])
 
     def test_returns_correct_related_fields(self):
         serializer = BookSerializer()
-        fields = serializer.related_fields()
+        fields = serializers.get_related_fields(serializer)
 
         self.assertEqual(fields[0].field_name, 'author')
 
     def test_returns_correct_many_related_fields(self):
         serializer = BookSerializer()
-        fields = serializer.many_related_fields()
+        fields = serializers.get_many_related_fields(serializer)
 
         self.assertEqual(fields[0].field_name, 'chapters')
 
@@ -77,7 +77,8 @@ class ImportExportSerializerTests(TestCase):
             'partner': ''
         })
 
-        self.assertFalse(serializer.might_have_changes)
+        might_have_changes = serializers.might_have_changes(serializer)
+        self.assertFalse(might_have_changes)
 
     def test_might_have_changes_returns_true(self):
         justin = Person(first_name='Justin', last_name='Trudeau')
@@ -89,7 +90,8 @@ class ImportExportSerializerTests(TestCase):
             'partner': ''
         })
 
-        self.assertTrue(serializer.might_have_changes)
+        might_have_changes = serializers.might_have_changes(serializer)
+        self.assertTrue(might_have_changes)
 
     def test_has_no_changes(self):
         justin = Person(first_name='Justin', last_name='Trudeau')
@@ -102,7 +104,7 @@ class ImportExportSerializerTests(TestCase):
         })
 
         serializer.is_valid()
-        self.assertFalse(serializer.has_changes)
+        self.assertFalse(serializers.has_changes(serializer))
 
     def test_has_changes(self):
         justin = Person(first_name='Justin', last_name='Trudeau')
@@ -115,7 +117,7 @@ class ImportExportSerializerTests(TestCase):
         })
 
         serializer.is_valid()
-        self.assertTrue(serializer.has_changes)
+        self.assertTrue(serializers.has_changes(serializer))
 
     def test_export_one_to_many(self):
         hadrien = Person(first_name='Hadrien', last_name='Trudeau')
@@ -140,21 +142,6 @@ class ImportExportSerializerTests(TestCase):
 
         self.assertEqual(children, [u'Hadrien', u'Xavier', u'Ella-Grace'])
 
-    def test_create_temporary_instance(self):
-        serializer = PersonSerializer(data={
-            'first_name': 'Justin',
-            'last_name': 'Trudeau',
-            'partner': ''
-        })
-
-        serializer.is_valid()
-
-        justin = serializer.create_temporary_instance()
-
-        self.assertIsInstance(justin, Person)
-        self.assertEqual(justin.first_name, 'Justin')
-        self.assertEqual(justin.last_name, 'Trudeau')
-
     def test_get_diff_data_for_new_object(self):
         serializer = PersonSerializer(data={
             'first_name': 'Justin',
@@ -164,7 +151,7 @@ class ImportExportSerializerTests(TestCase):
 
         serializer.is_valid()
 
-        diff = serializer.get_diff_data()
+        diff = serializers.get_diff_data(serializer)
 
         self.assertEqual(diff, {
             'first_name': ['', 'Justin'],
@@ -184,7 +171,7 @@ class ImportExportSerializerTests(TestCase):
 
         serializer.is_valid()
 
-        diff = serializer.get_diff_data()
+        diff = serializers.get_diff_data(serializer)
 
         self.assertEqual(diff, None)
 
@@ -200,7 +187,7 @@ class ImportExportSerializerTests(TestCase):
 
         serializer.is_valid()
 
-        diff = serializer.get_diff_data()
+        diff = serializers.get_diff_data(serializer)
 
         self.assertEqual(diff, {
             'first_name': ['Justin'],

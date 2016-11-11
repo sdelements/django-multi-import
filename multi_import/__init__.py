@@ -6,5 +6,4 @@ from multi_import.multi_importer import MultiImportExporter           # noqa
 from multi_import.object_cache import CachedQuery, ObjectCache        # noqa
 
 from multi_import.fields import *                                     # noqa
-from multi_import.serializers import ImportExportSerializer           # noqa
 from multi_import.relations import *                                  # noqa

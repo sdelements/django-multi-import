@@ -4,49 +4,44 @@ from tablib.compat import unicode
 from multi_import.utils import normalize_string
 
 
-__all__ = [
-    'FieldHelper',
-]
+list_separator = ';'
+
+
+def to_string_representation(field, value):
+    if hasattr(field, 'to_string_representation'):
+        return field.to_string_representation(value)
+
+    if isinstance(field, relations.ManyRelatedField):
+        if value is None:
+            value = []
+
+        return unicode(list_separator).join([
+            to_string_representation(field.child_relation, val)
+            for val in value
+        ])
+
+    if value is None:
+        value = ''
+
+    return normalize_string(unicode(value))
 
 
 class FieldHelper(object):
-    list_separator = ';'
 
     def to_string_representation(self, field, value):
-        if hasattr(field, 'to_string_representation'):
-            return field.to_string_representation(value)
-
-        if isinstance(field, relations.ManyRelatedField):
-            return self.many_to_string_representation(field, value)
-
-        if value is None:
-            value = ''
-
-        return normalize_string(unicode(value))
+        return to_string_representation(field, value)
 
     def from_string_representation(self, field, value):
         if hasattr(field, 'from_string_representation'):
             return field.from_string_representation(value)
 
-        if isinstance(field, relations.ManyRelatedField):
-            return self.many_from_string_representation(field, value)
+        if not isinstance(field, relations.ManyRelatedField):
+            return value
 
-        return value
-
-    def many_to_string_representation(self, field, value):
-        if value is None:
-            value = []
-
-        return unicode(self.list_separator).join([
-            self.to_string_representation(field.child_relation, val)
-            for val in value
-        ])
-
-    def many_from_string_representation(self, field, value):
         if not value:
             return []
 
         return [
             self.from_string_representation(field.child_relation, val)
-            for val in value.split(self.list_separator)
+            for val in value.split(list_separator)
         ]
