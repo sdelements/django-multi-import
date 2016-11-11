@@ -26,22 +26,17 @@ def to_string_representation(field, value):
     return normalize_string(unicode(value))
 
 
-class FieldHelper(object):
+def from_string_representation(field, value):
+    if hasattr(field, 'from_string_representation'):
+        return field.from_string_representation(value)
 
-    def to_string_representation(self, field, value):
-        return to_string_representation(field, value)
+    if not isinstance(field, relations.ManyRelatedField):
+        return value
 
-    def from_string_representation(self, field, value):
-        if hasattr(field, 'from_string_representation'):
-            return field.from_string_representation(value)
+    if not value:
+        return []
 
-        if not isinstance(field, relations.ManyRelatedField):
-            return value
-
-        if not value:
-            return []
-
-        return [
-            self.from_string_representation(field.child_relation, val)
-            for val in value.split(list_separator)
-        ]
+    return [
+        from_string_representation(field.child_relation, val)
+        for val in value.split(list_separator)
+    ]

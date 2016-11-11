@@ -3,8 +3,7 @@ from rest_framework.settings import api_settings
 from six import string_types
 from tablib import Dataset
 
-from multi_import import serializers
-from multi_import.fields import FieldHelper
+from multi_import import fields, serializers
 from multi_import.object_cache import CachedQuery
 from multi_import.utils import normalize_string
 
@@ -143,7 +142,7 @@ class Result(object):
         )
 
 
-class DataReader(FieldHelper):
+class DataReader(object):
     def __init__(self, serializer):
         self.serializer = serializer
 
@@ -185,7 +184,7 @@ class DataReader(FieldHelper):
             for field_name, value in data.items():
                 field = serializer.fields.get(field_name, None)
                 if field:
-                    val = self.from_string_representation(field, value)
+                    val = fields.from_string_representation(field, value)
                     result[field_name] = val
             yield result
 
@@ -284,10 +283,9 @@ class Importer(object):
 
     def get_lookup_data(self, row):
         serializer = self.serializer()
-        fields = serializer.fields
         data = {}
         for key, value in row.data.items():
-            field = fields.get(key, None)
+            field = serializer.fields.get(key, None)
             if field:
                 data[field.source] = value
         return data
