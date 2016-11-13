@@ -12,8 +12,8 @@ def read_file(filename):
         return ''
 
 install_requires = [
-    'tablib',
     'chardet',
+    'tablib',
     'six',
 ]
 
@@ -45,6 +45,6 @@ setup(
     long_description=read_file('README.rst'),
     test_suite="runtests.runtests",
     zip_safe=False,
-    requires=['django (>=1.7)', 'djangorestframework (>=3.0)'],
+    requires=['django (>=1.8)', 'djangorestframework (>=3.0)'],
     install_requires=install_requires
 )

@@ -27,22 +27,21 @@ matrix:
       env: DJANGO=1.10
   include:
     - python: 2.7
-      env: FLAKE8=1
+      env: LINT=1
 
 before_install:
   - if [ -z "$DJANGO" ]; then export DJANGO=$DEFAULT_DJANGO; fi
-  - if [[ -z "$FLAKE8" && $TRAVIS_PYTHON_VERSION == $DEFAULT_PYTHON && $DJANGO == $DEFAULT_DJANGO ]]; then export COVERAGE=1; fi
+  - if [[ -z "$LINT" && $TRAVIS_PYTHON_VERSION == $DEFAULT_PYTHON && $DJANGO == $DEFAULT_DJANGO ]]; then export COVERAGE=1; fi
 
 install:
   - pip install -q Django==$DJANGO
-  - pip install -r requirements.txt
-  - if [[ $FLAKE8 ]]; then pip install flake8; fi
-  - if [[ $COVERAGE ]]; then pip install coverage python-coveralls; fi
+  - make init
+  - if [[ $COVERAGE ]]; then pip install python-coveralls; fi
 
 script:
-  - if [[ $FLAKE8 ]]; then flake8; fi
-  - if [[ $COVERAGE ]]; then coverage run --source=multi_import runtests.py; fi
-  - if [[ -z "$FLAKE8" && -z "$COVERAGE" ]]; then ./runtests.py; fi
+  - if [[ $LINT ]]; then make lint; fi
+  - if [[ $COVERAGE ]]; then make coverage; fi
+  - if [[ -z "$LINT" && -z "$COVERAGE" ]]; then make test; fi
 
 after_success:
   - if [[ $COVERAGE ]]; then coveralls; fi
