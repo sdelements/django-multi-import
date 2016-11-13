@@ -102,46 +102,93 @@ class DataReader(object):
 
 
 class Importer(object):
+    key = None
+    model = None
+    id_column = None
     lookup_fields = ('pk',)
+
+    cached_query = CachedQuery
+    serializer = None
 
     error_messages = {
         'cannot_update': _(u'Can not update this item.'),
         'multiple_matches': _(u'Multiple database entries match.')
     }
 
-    def __init__(self,
-                 key,
-                 model,
-                 lookup_fields,
-                 queryset,
-                 serializer):
+    @property
+    def dependencies(self):
+        """
+        Returns a list of related models that this importer is dependent on.
+        """
+        return serializers.get_dependencies(self.serializer())
 
-        self.key = key
-        self.model = model
-        self.lookup_fields = lookup_fields
-        self.queryset = queryset
-        self.serializer = serializer
-        self.cached_query = self.get_cached_query()
+    def get_queryset(self):
+        queryset = self.model.objects
+        serializer = self.serializer()
 
-    def get_serializer_context(self, context=None):
+        for field in serializers.get_related_fields(serializer):
+            queryset = queryset.select_related(field.source)
+
+        for field in serializers.get_many_related_fields(serializer):
+            queryset = queryset.prefetch_related(field.source)
+
+        return queryset
+
+    def get_export_queryset(self):
+        return self.get_queryset()
+
+    def get_import_queryset(self):
+        return self.get_queryset()
+
+    def export_dataset(self, template=False):
+        serializer = self.serializer()
+        dataset = Dataset(headers=self.get_export_header(serializer))
+
+        if not template:
+            for instance in self.get_export_queryset():
+                dataset.append(self.get_export_row(serializer, instance))
+
+        return dataset
+
+    def get_export_header(self, serializer):
+        return [
+            field_name
+            for field_name, field in serializer.get_fields().items()
+            if not field.write_only
+        ]
+
+    def get_export_row(self, serializer, instance):
+        results = []
+        representation = serializer.to_representation(instance=instance)
+        for column_name, value in representation.items():
+            field = serializer.fields[column_name]
+            val = fields.to_string_representation(field, value)
+            # TODO: Excel escaping should be done for Excel/CSV formats
+            results.append(strings.excel_escape(val))
+        return results
+
+    def get_serializer_context(self, cached_query, context=None):
         context = context or {}
-        context['cached_query'] = self.cached_query
+        context['cached_query'] = cached_query
         return context
 
     def can_update_object(self, instance):
         return True
 
     def get_cached_query(self):
-        return CachedQuery(self.queryset, self.lookup_fields)
+        return self.cached_query(
+            self.get_import_queryset(), self.lookup_fields
+        )
 
-    def run(self, data, context=None):
-        context = self.get_serializer_context(context)
+    def import_data(self, data, context=None):
+        cached_query = self.get_cached_query()
+        context = self.get_serializer_context(cached_query, context)
 
         data_reader = DataReader(self.serializer)
         rows = data_reader.read(data)
 
         for row, data in rows:
-            self.load_instance(row, data)
+            self.load_instance(row, data, cached_query)
 
         for row, data in rows:
             self.process_row(row, data, context)
@@ -166,10 +213,10 @@ class Importer(object):
             ])
             yield Row(row_number, line_number, row_data)
 
-    def load_instance(self, row, data):
+    def load_instance(self, row, data, cached_query):
         try:
             lookup_data = self.get_lookup_data(row)
-            data.instance = self.lookup_model_object(lookup_data)
+            data.instance = self.lookup_model_object(cached_query, lookup_data)
         except MultipleObjectsReturned:
             row.set_error(self.error_messages['multiple_matches'])
             data.processed = True
@@ -183,8 +230,8 @@ class Importer(object):
                 data[field.source] = value
         return data
 
-    def lookup_model_object(self, lookup_data):
-        return self.cached_query.match(lookup_data, self.lookup_fields)
+    def lookup_model_object(self, cached_query, lookup_data):
+        return cached_query.match(lookup_data, self.lookup_fields)
 
     def process_row(self, row, data, context):
         if data.processed:

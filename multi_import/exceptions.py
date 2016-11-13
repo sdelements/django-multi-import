@@ -6,5 +6,5 @@ class InvalidFileError(Exception):
     pass
 
 
-class ImportInvalidError(Exception):
+class ImportRollbackError(Exception):
     pass

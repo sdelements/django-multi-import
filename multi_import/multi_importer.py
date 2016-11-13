@@ -3,7 +3,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from multi_import.cache import ObjectCache
 from multi_import.data import MultiExportResult, MultiImportResult
-from multi_import.exceptions import ImportInvalidError, InvalidDatasetError
+from multi_import.exceptions import ImportRollbackError, InvalidDatasetError
 
 
 class MultiImportExporter(object):
@@ -105,9 +105,9 @@ class MultiImportExporter(object):
                     results.add_result(filename, result)
 
                 if not results.valid or not commit:
-                    raise ImportInvalidError
+                    raise ImportRollbackError
 
-        except ImportInvalidError:
+        except ImportRollbackError:
             pass
 
         return results
