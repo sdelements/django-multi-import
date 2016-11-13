@@ -4,7 +4,7 @@ from tablib.core import Dataset
 from tablib.compat import BytesIO, StringIO
 
 from multi_import.exceptions import InvalidFileError
-from multi_import.utils import normalize_string
+from multi_import.helpers import strings
 
 
 class FileFormat(object):
@@ -87,7 +87,7 @@ class CsvFormat(TabLibFileFormat):
 
     def pre_read(self, file_object):
         file_object = self.ensure_unicode(file_object)
-        file_object = normalize_string(file_object)
+        file_object = strings.normalize_string(file_object)
         return file_object
 
 

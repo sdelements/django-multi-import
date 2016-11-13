@@ -1,6 +1,6 @@
 import tablib
 
-from multi_import import fields
+from multi_import.helpers import fields
 
 __all__ = [
     'Exporter',

@@ -1,78 +1,8 @@
 from django.db import transaction
 
-from multi_import.importer import Result
-from multi_import.object_cache import ObjectCache
-
-
-class InvalidDatasetError(Exception):
-    pass
-
-
-class ImportInvalidError(Exception):
-    pass
-
-
-class MultiImportResult(object):
-    """
-    Results from an attempt to generate an import diff for several files.
-    """
-    def __init__(self):
-        self.files = []
-        self.errors = {}
-
-    @property
-    def valid(self):
-        return len(self.errors) == 0
-
-    def add_result(self, filename, result):
-        if result.valid is False:
-            self.errors[filename] = result.errors
-
-        self.files.append({
-            'filename': filename,
-            'result': result
-        })
-
-    def add_error(self, filename, message):
-        self.errors[filename] = [{'message': message}]
-
-    def num_changes(self):
-        return sum(
-            len(file['result'].changes) for file in self.files
-        )
-
-    def has_changes(self):
-        return any(file['result'].changes for file in self.files)
-
-    def to_json(self):
-        return {
-            'files': [
-                {
-                    'filename': file['filename'],
-                    'result': file['result'].to_json(),
-                }
-                for file in self.files
-            ]
-        }
-
-    @classmethod
-    def from_json(cls, data):
-        result = cls()
-        for file in data['files']:
-            result.add_result(file['filename'],
-                              Result.from_json(file['result']))
-        return result
-
-
-class ExportResult(object):
-    """
-    Results from an attempt to export multiple datasets.
-    """
-    def __init__(self):
-        self.datasets = {}
-
-    def add_result(self, key, dataset):
-        self.datasets[key] = dataset
+from multi_import.cache import ObjectCache
+from multi_import.data import MultiExportResult, MultiImportResult
+from multi_import.exceptions import ImportInvalidError, InvalidDatasetError
 
 
 class MultiImportExporter(object):
@@ -200,7 +130,7 @@ class MultiImportExporter(object):
         else:
             exporters = self.import_export_managers
 
-        result = ExportResult()
+        result = MultiExportResult()
 
         for exporter in exporters:
             dataset = exporter.export_dataset(template)

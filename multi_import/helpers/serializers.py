@@ -4,8 +4,7 @@ from rest_framework import relations
 import six
 from tablib.compat import unicode
 
-from multi_import import fields
-from multi_import.utils import normalize_string
+from multi_import.helpers import fields, strings
 
 
 FieldChange = namedtuple('FieldChange', ['field', 'old', 'new', 'value'])
@@ -82,7 +81,7 @@ def get_changed_fields(serializer):
 
         # TODO: Move this to .to_representation()?
         if isinstance(old_value, six.string_types):
-            old_value = normalize_string(old_value)
+            old_value = strings.normalize_string(old_value)
 
         if old_value != new_value:
             result[field_name] = FieldChange(field,

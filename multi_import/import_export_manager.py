@@ -1,6 +1,6 @@
-from multi_import import serializers
 from multi_import.exporter import Exporter
 from multi_import.importer import Importer
+from multi_import.helpers import serializers
 
 
 class ImportExportManager(object):

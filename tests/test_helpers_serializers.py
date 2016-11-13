@@ -1,8 +1,8 @@
 from django.test import TestCase
 from rest_framework.serializers import ModelSerializer
 
-from multi_import import serializers
-from multi_import.relations import LookupRelatedField
+from multi_import.helpers import serializers
+from multi_import.fields import LookupRelatedField
 
 from tests.models import Book, Chapter, Person
 
