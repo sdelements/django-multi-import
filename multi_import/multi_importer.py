@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.utils.translation import ugettext_lazy as _
 
 from multi_import.cache import ObjectCache
 from multi_import.data import MultiExportResult, MultiImportResult
@@ -13,8 +14,10 @@ class MultiImportExporter(object):
     classes = []
 
     error_messages = {
-        'invalid_key': u'Columns should match those in the import template.',
-        'invalid_export_keys': u'Invalid keys {0} for exporting'
+        'invalid_key': _(
+            u'Columns should match those in the import template.'
+        ),
+        'invalid_export_keys': _(u'Invalid keys {0} for exporting')
     }
 
     def __init__(self):

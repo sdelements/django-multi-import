@@ -1,4 +1,5 @@
 import chardet
+from django.utils.translation import ugettext_lazy as _
 from tablib.formats import _csv, _xls, _xlsx
 from tablib.core import Dataset
 from tablib.compat import BytesIO, StringIO
@@ -62,7 +63,7 @@ class TabLibFileFormat(FileFormat):
             self.format.import_set(dataset, self.pre_read(file_object))
             return dataset
         except AttributeError:
-            raise InvalidFileError('Empty or Invalid File.')
+            raise InvalidFileError(_(u'Empty or Invalid File.'))
 
     def write(self, dataset):
         data = self.format.export_set(dataset)
@@ -83,7 +84,7 @@ class CsvFormat(TabLibFileFormat):
         if encoding and encoding_confidence > 0.5:
             return file_contents.decode(encoding.lower()).encode('utf8')
         else:
-            raise InvalidFileError('Unknown file type.')
+            raise InvalidFileError(_(u'Unknown file type.'))
 
     def pre_read(self, file_object):
         file_object = self.ensure_unicode(file_object)

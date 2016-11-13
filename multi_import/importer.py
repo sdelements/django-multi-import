@@ -1,4 +1,5 @@
 from django.core.exceptions import MultipleObjectsReturned
+from django.utils.translation import ugettext_lazy as _
 from six import string_types
 from tablib import Dataset
 
@@ -104,8 +105,8 @@ class Importer(object):
     lookup_fields = ('pk',)
 
     error_messages = {
-        'cannot_update': u'Can not update this item.',
-        'multiple_matches': u'Multiple database entries match.'
+        'cannot_update': _(u'Can not update this item.'),
+        'multiple_matches': _(u'Multiple database entries match.')
     }
 
     def __init__(self,

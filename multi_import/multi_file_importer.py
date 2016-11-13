@@ -1,7 +1,8 @@
 import zipfile
 
-import tablib
 from django.http import HttpResponse
+from django.utils.translation import ugettext_lazy as _
+import tablib
 from tablib.compat import BytesIO
 
 from multi_import.exceptions import InvalidFileError
@@ -25,7 +26,7 @@ class FileReadWriter(object):
             except AttributeError:
                 pass
 
-        raise InvalidFileError('Invalid File Type.')
+        raise InvalidFileError(_('Invalid File Type.'))
 
     def write(self, dataset, file_format=None):
         if file_format is None:
@@ -86,7 +87,7 @@ class MultiFileImportExporter(MultiImportExporter):
     def __init__(self, *args, **kwargs):
         super(MultiFileImportExporter, self).__init__(*args, **kwargs)
         self.file_writer = FileReadWriter()
-        self.error_messages['invalid_file'] = u'Empty or Invalid File.'
+        self.error_messages['invalid_file'] = _(u'Empty or Invalid File.')
 
     def export_files(self, keys=None, template=False, file_format='csv'):
         datasets = self.export_datasets(keys, template)
