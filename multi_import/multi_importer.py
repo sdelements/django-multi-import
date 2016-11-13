@@ -1,9 +1,9 @@
-from django.db import transaction
 from django.utils.translation import ugettext_lazy as _
 
 from multi_import.cache import ObjectCache
 from multi_import.data import MultiExportResult, MultiImportResult
-from multi_import.exceptions import ImportRollbackError, InvalidDatasetError
+from multi_import.exceptions import InvalidDatasetError
+from multi_import.helpers.transactions import transaction
 
 
 class MultiImportExporter(object):
@@ -89,26 +89,19 @@ class MultiImportExporter(object):
                 filename, data = file_data
                 yield importer, filename, data
 
-    def import_data(self, data, commit=False):
+    @transaction
+    def import_data(self, data):
         results = MultiImportResult()
 
-        try:
-            with transaction.atomic():
-                context = {
-                    'new_object_cache': self.get_new_object_cache()
-                }
+        context = {
+            'new_object_cache': self.get_new_object_cache()
+        }
 
-                bound_importers = self.transform_multi_input(data)
+        bound_importers = self.transform_multi_input(data)
 
-                for importer, filename, dataset in bound_importers:
-                    result = importer.import_data(dataset, context)
-                    results.add_result(filename, result)
-
-                if not results.valid or not commit:
-                    raise ImportRollbackError
-
-        except ImportRollbackError:
-            pass
+        for importer, filename, dataset in bound_importers:
+            result = importer.import_data(dataset, context, transaction=False)
+            results.add_result(filename, result)
 
         return results
 

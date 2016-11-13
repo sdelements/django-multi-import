@@ -7,6 +7,7 @@ from tablib.compat import BytesIO
 
 from multi_import.exceptions import InvalidFileError
 from multi_import.formats import all_formats
+from multi_import.helpers.transactions import transaction
 from multi_import.multi_importer import (InvalidDatasetError,
                                          MultiImportExporter,
                                          MultiImportResult)
@@ -107,7 +108,8 @@ class MultiFileImportExporter(MultiImportExporter):
         except (tablib.InvalidDimensions, tablib.UnsupportedFormat):
             raise InvalidFileError(self.error_messages['invalid_file'])
 
-    def import_files(self, files, commit=False):
+    @transaction
+    def import_files(self, files):
         results = MultiImportResult()
 
         data = {}
@@ -125,4 +127,4 @@ class MultiFileImportExporter(MultiImportExporter):
         if not results.valid:
             return results
 
-        return self.import_data(data, commit)
+        return self.import_data(data, transaction=False)

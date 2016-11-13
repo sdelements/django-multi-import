@@ -4,7 +4,3 @@ class InvalidDatasetError(Exception):
 
 class InvalidFileError(Exception):
     pass
-
-
-class ImportRollbackError(Exception):
-    pass

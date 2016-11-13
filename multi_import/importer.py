@@ -6,6 +6,7 @@ from tablib import Dataset
 from multi_import.cache import CachedQuery
 from multi_import.data import ImportResult, RowStatus, Row
 from multi_import.helpers import fields, serializers, strings
+from multi_import.helpers.transactions import transaction
 
 
 __all__ = [
@@ -180,6 +181,7 @@ class Importer(object):
             self.get_import_queryset(), self.lookup_fields
         )
 
+    @transaction
     def import_data(self, data, context=None):
         cached_query = self.get_cached_query()
         context = self.get_serializer_context(cached_query, context)
