@@ -1,17 +1,23 @@
 from django.utils.translation import ugettext_lazy as _
 
 from multi_import.cache import ObjectCache
-from multi_import.data import MultiExportResult, MultiImportResult
-from multi_import.exceptions import InvalidDatasetError
+from multi_import.data import (MultiExportResult,
+                               MultiFileExportResult,
+                               MultiImportResult)
+from multi_import.exceptions import InvalidDatasetError, InvalidFileError
+from multi_import.formats import all_formats
+from multi_import.helpers import files as file_helper
 from multi_import.helpers.transactions import transaction
 
 
-class MultiImportExporter(object):
+class MultiImporter(object):
     """
     Coordinates several ImportExporter classes,
     to enable multi-dataset export and imports.
     """
-    classes = []
+    importers = []
+    file_formats = all_formats
+    zip_filename = 'export'
 
     error_messages = {
         'invalid_key': _(
@@ -22,17 +28,76 @@ class MultiImportExporter(object):
 
     def __init__(self):
         import_export_managers = [
-            cls(**self.get_import_export_manager_kwargs())
-            for cls in self.classes
+            cls(**self.get_importer_kwargs())
+            for cls in self.importers
         ]
-        self.import_export_managers = self.sort_importers(
+        self.importer_instances = self._sort_importers(
             import_export_managers
         )
 
-    def get_import_export_manager_kwargs(self):
+    def get_importer_kwargs(self):
         return {}
 
-    def sort_importers(self, importers):
+    def export_files(self, empty=False, keys=None, file_format='csv'):
+        datasets = self.export_datasets(empty=empty, keys=keys)
+
+        result = MultiFileExportResult(file_format, self.zip_filename)
+
+        for key, dataset in datasets.datasets.items():
+            file = file_helper.write(self.file_formats, dataset, file_format)
+            result.add_result(key, file)
+
+        return result
+
+    def export_datasets(self, empty=False, keys=None):
+        exporters = self._get_exporters(keys)
+
+        result = MultiExportResult()
+
+        for exporter in exporters:
+            dataset = exporter.export_dataset(empty=empty)
+            result.add_result(exporter.key, dataset)
+
+        return result
+
+    @transaction
+    def import_files(self, files):
+        results = MultiImportResult()
+
+        data = {}
+        for filename, file in files.items():
+            try:
+                dataset = file_helper.read(self.file_formats, file)
+                model, data_item = self._identify_dataset(filename, dataset)
+                if model in data:
+                    data[model].append(data_item)
+                else:
+                    data[model] = [data_item]
+            except(InvalidDatasetError, InvalidFileError) as e:
+                results.add_error(filename, e.message)
+
+        if not results.valid:
+            return results
+
+        return self.import_data(data, transaction=False)
+
+    @transaction
+    def import_data(self, data):
+        results = MultiImportResult()
+
+        context = {
+            'new_object_cache': self._get_new_object_cache()
+        }
+
+        bound_importers = self._transform_multi_input(data)
+
+        for importer, filename, dataset in bound_importers:
+            result = importer.import_data(dataset, context, transaction=False)
+            results.add_result(filename, result)
+
+        return results
+
+    def _sort_importers(self, importers):
         """
         Sorts importers based on their inter-dataset dependencies.
         """
@@ -56,9 +121,30 @@ class MultiImportExporter(object):
                 results.insert(index, importer)
         return results
 
-    def identify_dataset(self, filename, dataset):
+    def _get_exporters(self, keys=None):
+        if not keys:
+            return self.importer_instances
+
+        # Check to make sure we're not passing in bad keys
+        all_valid_keys = (
+            exporter.key for exporter in self.importer_instances
+        )
+        invalid_keys = (key for key in keys if key not in all_valid_keys)
+        if invalid_keys:
+            error_key = 'invalid_export_keys'
+            joined_keys = ','.join(invalid_keys)
+            raise ValueError(
+                self.error_messages[error_key].format(joined_keys)
+            )
+
+        return (
+            exporter for exporter in self.importer_instances
+            if exporter.key in keys
+        )
+
+    def _identify_dataset(self, filename, dataset):
         models = (
-            importer.model for importer in self.import_export_managers
+            importer.model for importer in self.importer_instances
             if importer.id_column in dataset.headers
         )
         model = next(models, None)
@@ -67,15 +153,15 @@ class MultiImportExporter(object):
 
         return model, (filename, dataset)
 
-    def get_new_object_cache(self):
+    def _get_new_object_cache(self):
         cache = {}
-        for importer in self.import_export_managers:
+        for importer in self.importer_instances:
             cache[importer.model] = ObjectCache(importer.lookup_fields)
         return cache
 
-    def transform_multi_input(self, input_data):
+    def _transform_multi_input(self, input_data):
         if isinstance(input_data, MultiImportResult):
-            for importer in self.import_export_managers:
+            for importer in self.importer_instances:
                 datasets = (
                     f for f in input_data.files
                     if f['result'].key == importer.key
@@ -84,52 +170,7 @@ class MultiImportExporter(object):
                     yield importer, dataset['filename'], dataset['result']
             return
 
-        for importer in self.import_export_managers:
+        for importer in self.importer_instances:
             for file_data in input_data.get(importer.model, []):
                 filename, data = file_data
                 yield importer, filename, data
-
-    @transaction
-    def import_data(self, data):
-        results = MultiImportResult()
-
-        context = {
-            'new_object_cache': self.get_new_object_cache()
-        }
-
-        bound_importers = self.transform_multi_input(data)
-
-        for importer, filename, dataset in bound_importers:
-            result = importer.import_data(dataset, context, transaction=False)
-            results.add_result(filename, result)
-
-        return results
-
-    def export_datasets(self, keys=None, template=False):
-        if keys:
-            # Check to make sure we're not passing in bad keys
-            all_valid_keys = [
-                exporter.key for exporter in self.import_export_managers
-            ]
-            invalid_keys = [key for key in keys if key not in all_valid_keys]
-            if invalid_keys:
-                error_key = 'invalid_export_keys'
-                joined_keys = ','.join(invalid_keys)
-                raise ValueError(
-                    self.error_messages[error_key].format(joined_keys)
-                )
-
-            exporters = [
-                exporter for exporter in self.import_export_managers
-                if exporter.key in keys
-            ]
-        else:
-            exporters = self.import_export_managers
-
-        result = MultiExportResult()
-
-        for exporter in exporters:
-            dataset = exporter.export_dataset(template)
-            result.add_result(exporter.key, dataset)
-
-        return result

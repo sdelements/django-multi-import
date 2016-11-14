@@ -5,11 +5,6 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import relations
 
 
-__all__ = [
-    'LookupRelatedField',
-]
-
-
 class LookupRelatedField(relations.RelatedField):
     default_error_messages = {
         'required': _(u'This field is required.'),

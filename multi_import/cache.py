@@ -5,12 +5,6 @@ import six
 from tablib.compat import unicode
 
 
-__all__ = [
-    'ObjectCache',
-    'CachedQuery',
-]
-
-
 class CachedObject(object):
 
     def __init__(self, obj):

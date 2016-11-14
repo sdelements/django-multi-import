@@ -1,4 +1,8 @@
+import zipfile
+
+from django.http import HttpResponse
 from rest_framework.settings import api_settings
+from tablib.compat import BytesIO
 
 
 class RowStatus(object):
@@ -51,14 +55,15 @@ class Row(object):
 
 
 class ImportResult(object):
-    def __init__(self, key, headers, rows=None):
+    def __init__(self, key, headers=None, rows=None, error=None):
         self.key = key
+        self.error = error
         self.headers = headers
         self.rows = rows or []
 
     @property
     def valid(self):
-        return not any(row.errors for row in self.rows)
+        return not self.error and not any(row.errors for row in self.rows)
 
     @property
     def errors(self):
@@ -169,3 +174,49 @@ class MultiExportResult(object):
 
     def add_result(self, key, dataset):
         self.datasets[key] = dataset
+
+
+class MultiFileExportResult(object):
+    """
+    Results from an attempt to export multiple files.
+    """
+    def __init__(self, file_format='csv', zip_filename='export'):
+        self.file_format = file_format
+        self.zip_filename = zip_filename
+        self.files = {}
+
+    def add_result(self, key, result):
+        self.files[key] = result
+
+    def get_content_type(self):
+        if self.file_format == 'csv':
+            return 'application/csv'
+        elif self.file_format == 'txt':
+            return 'text/plain'
+        elif self.file_format == 'xls':
+            return 'application/vnd.ms-excel'
+        else:
+            return (
+                'application/'
+                'vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
+
+    def get_http_response(self):
+        if len(self.files) == 1:
+            key, file = self.files.items()[0]
+            content_type = self.get_content_type()
+            filename = "{0}.{1}".format(key, self.file_format)
+
+        else:
+            file = BytesIO()
+            with zipfile.ZipFile(file, "w") as zf:
+                for key, f in self.files.items():
+                    fname = "{0}.{1}".format(key, self.file_format)
+                    zf.writestr(fname, f.getvalue())
+            content_type = "application-x-zip-compressed"
+            filename = self.zip_filename + ".zip"
+
+        response = HttpResponse(file.getvalue(), content_type=content_type)
+        header = 'attachment; filename={0}'.format(filename)
+        response['Content-Disposition'] = header
+        return response

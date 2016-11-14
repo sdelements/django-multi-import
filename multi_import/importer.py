@@ -5,13 +5,10 @@ from tablib import Dataset
 
 from multi_import.cache import CachedQuery
 from multi_import.data import ImportResult, RowStatus, Row
-from multi_import.helpers import fields, serializers, strings
+from multi_import.exceptions import InvalidFileError
+from multi_import.formats import all_formats
+from multi_import.helpers import fields, files, serializers, strings
 from multi_import.helpers.transactions import transaction
-
-
-__all__ = [
-    'Importer',
-]
 
 
 class RowData(object):
@@ -107,6 +104,7 @@ class Importer(object):
     model = None
     id_column = None
     lookup_fields = ('pk',)
+    file_formats = all_formats
 
     cached_query = CachedQuery
     serializer = None
@@ -141,11 +139,15 @@ class Importer(object):
     def get_import_queryset(self):
         return self.get_queryset()
 
-    def export_dataset(self, template=False):
+    def export_file(self, empty=False, file_format=None):
+        dataset = self.export_dataset(empty=empty)
+        return files.write(self.file_formats, dataset, file_format=file_format)
+
+    def export_dataset(self, empty=False):
         serializer = self.serializer()
         dataset = Dataset(headers=self.get_export_header(serializer))
 
-        if not template:
+        if not empty:
             for instance in self.get_export_queryset():
                 dataset.append(self.get_export_row(serializer, instance))
 
@@ -180,6 +182,18 @@ class Importer(object):
         return self.cached_query(
             self.get_import_queryset(), self.lookup_fields
         )
+
+    @transaction
+    def import_file(self, file):
+        try:
+            dataset = files.read(self.file_formats, file)
+        except InvalidFileError as e:
+            return ImportResult(
+                key=self.key,
+                error=e.message
+            )
+
+        return self.import_data(dataset, transaction=False)
 
     @transaction
     def import_data(self, data, context=None):

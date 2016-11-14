@@ -48,7 +48,7 @@ class PersonSerializer(ModelSerializer):
         read_only_fields = ('id', 'name')
 
 
-class SerializerTests(TestCase):
+class SerializerHelperTests(TestCase):
 
     def test_returns_correct_dependencies(self):
         serializer = BookSerializer()
