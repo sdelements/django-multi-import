@@ -1,9 +1,7 @@
 from django.utils.translation import ugettext_lazy as _
 
 from multi_import.cache import ObjectCache
-from multi_import.data import (MultiExportResult,
-                               MultiFileExportResult,
-                               MultiImportResult)
+from multi_import.data import MultiExportResult, MultiImportResult
 from multi_import.exceptions import InvalidDatasetError, InvalidFileError
 from multi_import.formats import all_formats
 from multi_import.helpers import files as file_helper
@@ -17,7 +15,7 @@ class MultiImporter(object):
     """
     importers = []
     file_formats = all_formats
-    zip_filename = 'export'
+    export_filename = 'export'
 
     error_messages = {
         'invalid_key': _(
@@ -35,30 +33,24 @@ class MultiImporter(object):
             import_export_managers
         )
 
+    def get_export_filename(self):
+        return self.export_filename
+
     def get_importer_kwargs(self):
         return {}
 
-    def export_files(self, empty=False, keys=None, file_format='csv'):
-        datasets = self.export_datasets(empty=empty, keys=keys)
-
-        result = MultiFileExportResult(file_format, self.zip_filename)
-
-        for key, dataset in datasets.datasets.items():
-            file = file_helper.write(self.file_formats, dataset, file_format)
-            result.add_result(key, file)
-
-        return result
-
-    def export_datasets(self, empty=False, keys=None):
+    def export(self, empty=False, keys=None):
         exporters = self._get_exporters(keys)
 
-        result = MultiExportResult()
+        results = tuple(
+            exporter.export(empty=empty) for exporter in exporters
+        )
 
-        for exporter in exporters:
-            dataset = exporter.export_dataset(empty=empty)
-            result.add_result(exporter.key, dataset)
-
-        return result
+        return MultiExportResult(
+            filename=self.get_export_filename(),
+            file_formats=self.file_formats,
+            results=results
+        )
 
     @transaction
     def import_files(self, files):

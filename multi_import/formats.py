@@ -15,6 +15,10 @@ class FileFormat(object):
     def key(self):
         return self.title
 
+    @property
+    def extension(self):
+        return self.key
+
     def detect(self, file_handler, file_contents):
         return False
 
@@ -29,8 +33,9 @@ class FileFormat(object):
 
 
 class TabLibFileFormat(FileFormat):
-    def __init__(self, file_format, read_file_as_string=False):
+    def __init__(self, file_format, content_type, read_file_as_string=False):
         self.format = file_format
+        self.content_type = content_type
         self.read_file_as_string = read_file_as_string
 
     @property
@@ -74,7 +79,9 @@ class TabLibFileFormat(FileFormat):
 
 class CsvFormat(TabLibFileFormat):
     def __init__(self):
-        super(CsvFormat, self).__init__(_csv, read_file_as_string=True)
+        super(CsvFormat, self).__init__(
+            _csv, 'application/csv', read_file_as_string=True
+        )
 
     @classmethod
     def ensure_unicode(cls, file_contents):
@@ -94,6 +101,7 @@ class CsvFormat(TabLibFileFormat):
 
 class TxtFormat(FileFormat):
     title = 'txt'
+    content_type = 'text/plain'
 
     def detect(self, file_handler, file_contents):
         return False
@@ -118,9 +126,16 @@ class TxtFormat(FileFormat):
 
 
 csv = CsvFormat()
+
 txt = TxtFormat()
-xls = TabLibFileFormat(_xls, read_file_as_string=True)
-xlsx = TabLibFileFormat(_xlsx)
+
+xls = TabLibFileFormat(
+    _xls, 'application/vnd.ms-excel', read_file_as_string=True
+)
+
+xlsx = TabLibFileFormat(
+    _xlsx, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+)
 
 all_formats = (
     xlsx,

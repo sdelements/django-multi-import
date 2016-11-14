@@ -4,7 +4,7 @@ from six import string_types
 from tablib import Dataset
 
 from multi_import.cache import CachedQuery
-from multi_import.data import ImportResult, RowStatus, Row
+from multi_import.data import ImportResult, RowStatus, Row, ExportResult
 from multi_import.exceptions import InvalidFileError
 from multi_import.formats import all_formats
 from multi_import.helpers import fields, files, serializers, strings
@@ -105,6 +105,7 @@ class Importer(object):
     id_column = None
     lookup_fields = ('pk',)
     file_formats = all_formats
+    export_filename = None
 
     cached_query = CachedQuery
     serializer = None
@@ -113,6 +114,9 @@ class Importer(object):
         'cannot_update': _(u'Can not update this item.'),
         'multiple_matches': _(u'Multiple database entries match.')
     }
+
+    def get_export_filename(self):
+        return self.export_filename or self.key
 
     @property
     def dependencies(self):
@@ -139,11 +143,7 @@ class Importer(object):
     def get_import_queryset(self):
         return self.get_queryset()
 
-    def export_file(self, empty=False, file_format=None):
-        dataset = self.export_dataset(empty=empty)
-        return files.write(self.file_formats, dataset, file_format=file_format)
-
-    def export_dataset(self, empty=False):
+    def export(self, empty=False):
         serializer = self.serializer()
         dataset = Dataset(headers=self.get_export_header(serializer))
 
@@ -151,7 +151,11 @@ class Importer(object):
             for instance in self.get_export_queryset():
                 dataset.append(self.get_export_row(serializer, instance))
 
-        return dataset
+        return ExportResult(
+            filename=self.get_export_filename(),
+            dataset=dataset,
+            file_formats=self.file_formats
+        )
 
     def get_export_header(self, serializer):
         return [

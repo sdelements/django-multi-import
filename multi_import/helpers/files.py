@@ -2,6 +2,17 @@ import tablib
 from django.utils.translation import ugettext_lazy as _
 
 from multi_import.exceptions import InvalidFileError
+from multi_import.formats import FileFormat
+
+
+def find_format(file_formats, file_format=None):
+    if isinstance(file_format, FileFormat):
+        return file_format
+
+    return next(
+        (f for f in file_formats if f.key == file_format),
+        file_formats[0]
+    )
 
 
 def read(file_formats, file):
@@ -20,14 +31,3 @@ def read(file_formats, file):
             raise InvalidFileError(_(u'Empty or Invalid File.'))
 
     raise InvalidFileError(_(u'Invalid File Type.'))
-
-
-def write(file_formats, dataset, file_format=None):
-    if file_format is None:
-        writer = file_formats[0]
-    else:
-        writer = next(
-            (f for f in file_formats if f.key == file_format),
-            None)
-
-    return writer.write(dataset)

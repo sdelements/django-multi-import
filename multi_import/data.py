@@ -4,6 +4,8 @@ from django.http import HttpResponse
 from rest_framework.settings import api_settings
 from tablib.compat import BytesIO
 
+from multi_import.helpers import files
+
 
 class RowStatus(object):
     unchanged = 1
@@ -165,58 +167,67 @@ class MultiImportResult(object):
         return result
 
 
+class ExportResult(object):
+    def __init__(self, dataset, filename, file_formats):
+        self.dataset = dataset
+        self.filename = filename
+        self.file_formats = file_formats
+
+    def get_file(self, file_format=None):
+        return self._get_format(file_format).write(self.dataset)
+
+    def get_http_response(self, file_format=None, filename=None):
+        format = self._get_format(file_format)
+        file = self.get_file(format)
+
+        filename = "{0}.{1}".format(
+            filename or self.filename, format.extension
+        )
+
+        response = HttpResponse(file.getvalue(),
+                                content_type=format.content_type)
+        header = 'attachment; filename={0}'.format(filename)
+        response['Content-Disposition'] = header
+        return response
+
+    def _get_format(self, file_format):
+        return files.find_format(self.file_formats, file_format)
+
+
 class MultiExportResult(object):
-    """
-    Results from an attempt to export multiple datasets.
-    """
-    def __init__(self):
-        self.datasets = {}
+    def __init__(self, filename, file_formats, results):
+        self.file_formats = file_formats
+        self.filename = filename
+        self.results = results
 
-    def add_result(self, key, dataset):
-        self.datasets[key] = dataset
+    def get_file(self, file_format=None):
+        format = self._get_format(file_format)
 
+        if len(self.results) == 1:
+            return self.results[0].get_file(format)
 
-class MultiFileExportResult(object):
-    """
-    Results from an attempt to export multiple files.
-    """
-    def __init__(self, file_format='csv', zip_filename='export'):
-        self.file_format = file_format
-        self.zip_filename = zip_filename
-        self.files = {}
+        file = BytesIO()
+        with zipfile.ZipFile(file, "w") as zf:
+            for result in self.results:
+                f = result.get_file(format)
+                fname = "{0}.{1}".format(result.filename, format.extension)
+                zf.writestr(fname, f.getvalue())
+        return file
 
-    def add_result(self, key, result):
-        self.files[key] = result
+    def get_http_response(self, file_format=None, filename=None):
+        format = self._get_format(file_format)
 
-    def get_content_type(self):
-        if self.file_format == 'csv':
-            return 'application/csv'
-        elif self.file_format == 'txt':
-            return 'text/plain'
-        elif self.file_format == 'xls':
-            return 'application/vnd.ms-excel'
-        else:
-            return (
-                'application/'
-                'vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            )
+        if len(self.results) == 1:
+            return self.results[0].get_http_response(format, filename)
 
-    def get_http_response(self):
-        if len(self.files) == 1:
-            key, file = self.files.items()[0]
-            content_type = self.get_content_type()
-            filename = "{0}.{1}".format(key, self.file_format)
-
-        else:
-            file = BytesIO()
-            with zipfile.ZipFile(file, "w") as zf:
-                for key, f in self.files.items():
-                    fname = "{0}.{1}".format(key, self.file_format)
-                    zf.writestr(fname, f.getvalue())
-            content_type = "application-x-zip-compressed"
-            filename = self.zip_filename + ".zip"
+        file = self.get_file(format)
+        content_type = 'application-x-zip-compressed'
+        filename = "{0}.zip".format(filename or self.filename)
 
         response = HttpResponse(file.getvalue(), content_type=content_type)
         header = 'attachment; filename={0}'.format(filename)
         response['Content-Disposition'] = header
         return response
+
+    def _get_format(self, file_format):
+        return files.find_format(self.file_formats, file_format)
