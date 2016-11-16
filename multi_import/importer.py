@@ -67,7 +67,7 @@ class DataReader(object):
             yield Row(row_number, line_number, row_data)
 
     def read_dataset_rows(self, dataset):
-        serializer = self.serializer()
+        serializer = self.serializer
         for row_data in dataset.dict:
             data = self.normalize_row_data(row_data)
 
@@ -115,6 +115,9 @@ class Importer(object):
         'multiple_matches': _(u'Multiple database entries match.')
     }
 
+    def __init__(self):
+        self.empty_serializer = self.serializer()
+
     def get_export_filename(self):
         return self.export_filename or self.key
 
@@ -123,11 +126,11 @@ class Importer(object):
         """
         Returns a list of related models that this importer is dependent on.
         """
-        return serializers.get_dependencies(self.serializer())
+        return serializers.get_dependencies(self.empty_serializer)
 
     def get_queryset(self):
         queryset = self.model.objects
-        serializer = self.serializer()
+        serializer = self.empty_serializer
 
         for field in serializers.get_related_fields(serializer):
             queryset = queryset.select_related(field.source)
@@ -144,7 +147,7 @@ class Importer(object):
         return self.get_queryset()
 
     def export(self, empty=False):
-        serializer = self.serializer()
+        serializer = self.empty_serializer
         dataset = Dataset(headers=self.get_export_header(serializer))
 
         if not empty:
@@ -204,7 +207,7 @@ class Importer(object):
         cached_query = self.get_cached_query()
         context = self.get_serializer_context(cached_query, context)
 
-        data_reader = DataReader(self.serializer)
+        data_reader = DataReader(self.empty_serializer)
         rows = data_reader.read(data)
 
         for row, data in rows:
@@ -242,7 +245,7 @@ class Importer(object):
             data.processed = True
 
     def get_lookup_data(self, row):
-        serializer = self.serializer()
+        serializer = self.empty_serializer
         data = {}
         for key, value in row.data.items():
             field = serializer.fields.get(key, None)
