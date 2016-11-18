@@ -20,7 +20,7 @@ install_requires = [
 
 setup(
     name='django-multi_import',
-    version='0.2.1',
+    version='0.2.2',
     author='Simon Bartlett',
     author_email='simon@securitycompass.com',
     packages=find_packages(),
