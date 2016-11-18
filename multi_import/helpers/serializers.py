@@ -60,7 +60,8 @@ def get_original_representation(serializer):
     return {}
 
 
-def get_changed_fields(serializer):
+def get_changed_fields(serializer, validated_data=None):
+    validated_data = validated_data or serializer.validated_data
     result = {}
 
     orig = get_original_representation(serializer)
@@ -71,12 +72,12 @@ def get_changed_fields(serializer):
 
         source = unicode(field.source)
 
-        if source not in serializer.validated_data:
+        if source not in validated_data:
             continue
 
         old_value = orig[field_name] if field_name in orig else None
 
-        value = serializer.validated_data[source]
+        value = validated_data[source]
         new_value = field.to_representation(value)
 
         # TODO: Move this to .to_representation()?
@@ -92,8 +93,8 @@ def get_changed_fields(serializer):
     return result
 
 
-def has_changes(serializer):
-    return bool(get_changed_fields(serializer))
+def has_changes(serializer, validated_data=None):
+    return bool(get_changed_fields(serializer, validated_data))
 
 
 def might_have_changes(serializer):
