@@ -118,10 +118,10 @@ class MultiImporter(object):
             return self.importer_instances
 
         # Check to make sure we're not passing in bad keys
-        all_valid_keys = (
+        all_valid_keys = [
             exporter.key for exporter in self.importer_instances
-        )
-        invalid_keys = (key for key in keys if key not in all_valid_keys)
+        ]
+        invalid_keys = [key for key in keys if key not in all_valid_keys]
         if invalid_keys:
             error_key = 'invalid_export_keys'
             joined_keys = ','.join(invalid_keys)
