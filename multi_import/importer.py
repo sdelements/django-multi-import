@@ -3,7 +3,7 @@ from django.utils.translation import ugettext_lazy as _
 from six import string_types
 from tablib import Dataset
 
-from multi_import.cache import CachedQuery
+from multi_import.cache import CachedQuery, ObjectCache
 from multi_import.data import ImportResult, RowStatus, Row, ExportResult
 from multi_import.exceptions import InvalidFileError
 from multi_import.formats import all_formats
@@ -112,7 +112,8 @@ class Importer(object):
 
     error_messages = {
         'cannot_update': _(u'Can not update this item.'),
-        'multiple_matches': _(u'Multiple database entries match.')
+        'multiple_matches': _(u'Multiple database entries match.'),
+        'multiple_updates': _(u'This item is being updated more than once.')
     }
 
     def __init__(self):
@@ -177,8 +178,25 @@ class Importer(object):
             results.append(strings.excel_escape(val))
         return results
 
+    def get_context(self, context=None):
+        context = context.copy() if context else {}
+
+        if 'model_contexts' not in context:
+            context['model_contexts'] = {}
+
+        if self.model not in context['model_contexts']:
+            context['model_contexts'][self.model] = self.get_model_context()
+
+        return context
+
+    def get_model_context(self):
+        return {
+            'new_objects': ObjectCache(self.lookup_fields),
+            'loaded_pks': set()
+        }
+
     def get_serializer_context(self, cached_query, context=None):
-        context = context or {}
+        context = context.copy() if context else {}
         context['cached_query'] = cached_query
         return context
 
@@ -205,16 +223,18 @@ class Importer(object):
     @transaction
     def import_data(self, data, context=None):
         cached_query = self.get_cached_query()
-        context = self.get_serializer_context(cached_query, context)
+        context = self.get_context(context)
+        serializer_context = self.get_serializer_context(cached_query,
+                                                         context)
 
         data_reader = DataReader(self.empty_serializer)
         rows = data_reader.read(data)
 
         for row, data in rows:
-            self.load_instance(row, data, cached_query)
+            self.load_instance(row, data, cached_query, context)
 
         for row, data in rows:
-            self.process_row(row, data, context)
+            self.process_row(row, data, serializer_context)
 
         return ImportResult(
             key=self.key,
@@ -236,13 +256,25 @@ class Importer(object):
             ])
             yield Row(row_number, line_number, row_data)
 
-    def load_instance(self, row, data, cached_query):
+    def load_instance(self, row, data, cached_query, context):
         try:
             lookup_data = self.get_lookup_data(row)
-            data.instance = self.lookup_model_object(cached_query, lookup_data)
+            instance = self.lookup_model_object(cached_query, lookup_data)
+
         except MultipleObjectsReturned:
             row.set_error(self.error_messages['multiple_matches'])
             data.processed = True
+
+        if not instance:
+            return
+
+        pk_set = context['model_contexts'][self.model]['loaded_pks']
+        if instance.pk in pk_set:
+            row.set_error(self.error_messages['multiple_updates'])
+            data.processed = True
+        else:
+            pk_set.add(instance.pk)
+            data.instance = instance
 
     def get_lookup_data(self, row):
         serializer = self.empty_serializer
@@ -308,7 +340,5 @@ class Importer(object):
             self.cache_instance(context, data.instance)
 
     def cache_instance(self, context, instance):
-        new_object_cache = context.get('new_object_cache', None)
-        if new_object_cache is not None:
-            cache = new_object_cache[self.model]
-            cache.add(instance)
+        new_object_cache = context['model_contexts'][self.model]['new_objects']
+        new_object_cache.add(instance)

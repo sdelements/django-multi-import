@@ -1,6 +1,5 @@
 from django.utils.translation import ugettext_lazy as _
 
-from multi_import.cache import ObjectCache
 from multi_import.data import MultiExportResult, MultiImportResult
 from multi_import.exceptions import InvalidDatasetError, InvalidFileError
 from multi_import.formats import all_formats
@@ -78,7 +77,10 @@ class MultiImporter(object):
         results = MultiImportResult()
 
         context = {
-            'new_object_cache': self._get_new_object_cache()
+            'model_contexts': {
+                importer.model: importer.get_model_context()
+                for importer in self.importer_instances
+            }
         }
 
         bound_importers = self._transform_multi_input(data)
@@ -144,12 +146,6 @@ class MultiImporter(object):
             raise InvalidDatasetError(self.error_messages['invalid_key'])
 
         return model, (filename, dataset)
-
-    def _get_new_object_cache(self):
-        cache = {}
-        for importer in self.importer_instances:
-            cache[importer.model] = ObjectCache(importer.lookup_fields)
-        return cache
 
     def _transform_multi_input(self, input_data):
         if isinstance(input_data, MultiImportResult):

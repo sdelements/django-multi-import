@@ -38,10 +38,11 @@ class LookupRelatedField(relations.RelatedField):
 
     @property
     def new_object_cache(self):
-        new_object_cache = self.context.get('new_object_cache', None)
-        if new_object_cache is None:
-            return None
-        return self.context['new_object_cache'].get(self.related_model, None)
+        return (
+            self.context.get('model_contexts', {})
+                        .get(self.related_model, {})
+                        .get('new_objects')
+        )
 
     def lookup_related(self, queryset, value):
         if not value:
