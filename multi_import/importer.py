@@ -233,8 +233,15 @@ class Importer(object):
         for row, data in rows:
             self.load_instance(row, data, cached_query, context)
 
+        # Process updates first
         for row, data in rows:
-            self.process_row(row, data, serializer_context)
+            if data.instance:
+                self.process_row(row, data, serializer_context)
+
+        # Then create new objects
+        for row, data in rows:
+            if not data.instance:
+                self.process_row(row, data, serializer_context)
 
         return ImportResult(
             key=self.key,
