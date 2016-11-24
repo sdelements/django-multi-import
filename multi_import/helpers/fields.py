@@ -39,4 +39,5 @@ def from_string_representation(field, value):
     return [
         from_string_representation(field.child_relation, val)
         for val in value.split(list_separator)
+        if val and not val.isspace()
     ]
