@@ -60,11 +60,22 @@ class DataReader(object):
         line_count = 0
 
         for row_number, row_data in enumerate(data, start=2):
+            # Skip empty rows
+            if not self.has_values(row_data):
+                continue
+
             line_number = first_row_line_number + line_count
             line_count += 1 + sum([
                 value.count('\n') for value in row_data.values()
             ])
+
             yield Row(row_number, line_number, row_data)
+
+    def has_values(self, row_data):
+        return any(
+            value for value in row_data.values()
+            if value and not value.isspace()
+        )
 
     def read_dataset_rows(self, dataset):
         serializer = self.serializer
