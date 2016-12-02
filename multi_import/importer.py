@@ -311,7 +311,7 @@ class Importer(object):
             return
 
         serializer = self.serializer(instance=data.instance,
-                                     data=row.data,
+                                     data=row.data.copy(),
                                      context=context,
                                      partial=data.instance is not None)
 
