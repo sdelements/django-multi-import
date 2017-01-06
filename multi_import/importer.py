@@ -189,7 +189,7 @@ class Importer(object):
             results.append(strings.excel_escape(val))
         return results
 
-    def get_context(self, context=None):
+    def get_serializer_context(self, context=None):
         context = context.copy() if context else {}
 
         if 'model_contexts' not in context:
@@ -198,6 +198,8 @@ class Importer(object):
         if self.model not in context['model_contexts']:
             context['model_contexts'][self.model] = self.get_model_context()
 
+        context['cached_query'] = self.get_cached_query()
+
         return context
 
     def get_model_context(self):
@@ -205,11 +207,6 @@ class Importer(object):
             'new_objects': ObjectCache(self.lookup_fields),
             'loaded_pks': set()
         }
-
-    def get_serializer_context(self, cached_query, context=None):
-        context = context.copy() if context else {}
-        context['cached_query'] = cached_query
-        return context
 
     def can_update_object(self, instance):
         return True
@@ -233,26 +230,33 @@ class Importer(object):
 
     @transaction
     def import_data(self, data, context=None):
-        cached_query = self.get_cached_query()
-        context = self.get_context(context)
-        serializer_context = self.get_serializer_context(cached_query,
-                                                         context)
+        serializer_context = self.get_serializer_context(context)
 
+        rows = self.read_rows(data)
+
+        self.load_instances(rows, serializer_context)
+
+        return self.process_rows(rows, serializer_context)
+
+    def read_rows(self, data):
         data_reader = DataReader(self.empty_serializer)
         rows = data_reader.read(data)
+        return rows
 
+    def load_instances(self, rows, context):
         for row, data in rows:
-            self.load_instance(row, data, cached_query, context)
+            self.load_instance(row, data, context)
 
+    def process_rows(self, rows, context):
         # Process updates first
         for row, data in rows:
             if data.instance:
-                self.process_row(row, data, serializer_context)
+                self.process_row(row, data, context)
 
         # Then create new objects
         for row, data in rows:
             if not data.instance:
-                self.process_row(row, data, serializer_context)
+                self.process_row(row, data, context)
 
         return ImportResult(
             key=self.key,
@@ -274,7 +278,8 @@ class Importer(object):
             ])
             yield Row(row_number, line_number, row_data)
 
-    def load_instance(self, row, data, cached_query, context):
+    def load_instance(self, row, data, context):
+        cached_query = context['cached_query']
         try:
             lookup_data = self.get_lookup_data(row)
             instance = self.lookup_model_object(cached_query, lookup_data)

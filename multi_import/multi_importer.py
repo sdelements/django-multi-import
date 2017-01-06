@@ -85,9 +85,20 @@ class MultiImporter(object):
 
         bound_importers = self._transform_multi_input(data)
 
-        for importer, filename, dataset in bound_importers:
-            result = importer.import_data(dataset, context, transaction=False)
-            results.add_result(filename, result)
+        for importer, datasets in bound_importers:
+            serializer_context = importer.get_serializer_context(context)
+
+            read_datasets = [
+                (filename, importer.read_rows(dataset))
+                for filename, dataset in datasets
+            ]
+
+            for filename, rows in read_datasets:
+                importer.load_instances(rows, serializer_context)
+
+            for filename, rows in read_datasets:
+                result = importer.process_rows(rows, serializer_context)
+                results.add_result(filename, result)
 
         return results
 
@@ -148,17 +159,15 @@ class MultiImporter(object):
         return model, (filename, dataset)
 
     def _transform_multi_input(self, input_data):
-        if isinstance(input_data, MultiImportResult):
-            for importer in self.importer_instances:
-                datasets = (
-                    f for f in input_data.files
-                    if f['result'].key == importer.key
-                )
-                for dataset in datasets:
-                    yield importer, dataset['filename'], dataset['result']
-            return
-
         for importer in self.importer_instances:
-            for file_data in input_data.get(importer.model, []):
-                filename, data = file_data
-                yield importer, filename, data
+            if isinstance(input_data, MultiImportResult):
+                datasets = [
+                    (f['filename'], f['result'])
+                    for f in input_data.files
+                    if f['result'].key == importer.key
+                ]
+            else:
+                datasets = input_data.get(importer.model)
+
+            if datasets:
+                yield (importer, datasets)
