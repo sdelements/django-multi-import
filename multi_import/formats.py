@@ -63,9 +63,17 @@ class TabLibFileFormat(FileFormat):
     def read(self, file_handler, file_contents):
         file_object = self.get_file_object(file_handler, file_contents)
         file_object = self.pre_read(file_object)
+
         try:
             dataset = Dataset()
-            self.format.import_set(dataset, self.pre_read(file_object))
+
+            try:
+                self.format.import_set(dataset, file_object)
+            except TypeError:
+                # Versions of tablib>=0.11.5 expect a
+                # buffer-like object to pass to BytesIO
+                self.format.import_set(dataset, file_object.read())
+
             return dataset
         except AttributeError:
             raise InvalidFileError(_(u'Empty or Invalid File.'))
