@@ -1,6 +1,8 @@
-from django.core.exceptions import (ObjectDoesNotExist,
+from django.core.exceptions import (FieldError,
                                     MultipleObjectsReturned,
-                                    FieldError)
+                                    ObjectDoesNotExist,
+                                    ValidationError
+                                    )
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import relations
 
@@ -67,6 +69,7 @@ class LookupRelatedField(relations.RelatedField):
         for attribute in self.lookup_fields:
             try:
                 return queryset.get(**{attribute: value})
-            except (FieldError, ObjectDoesNotExist, TypeError, ValueError):
+            except (FieldError, ObjectDoesNotExist, TypeError,
+                    ValidationError, ValueError):
                 continue
         raise ObjectDoesNotExist
