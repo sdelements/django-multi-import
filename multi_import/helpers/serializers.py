@@ -105,21 +105,24 @@ def might_have_changes(serializer):
         and not field.read_only and not field.write_only
     ]
 
-    rep = serializer.to_representation(serializer.instance)
+    orig_rep = get_original_representation(serializer)
 
-    initial = {
+    old_values = {
+        field_name: (
+            fields.to_string_representation(field, orig_rep[field_name])
+            if field_name in orig_rep else ""
+        )
+        for field_name, field in submitted_fields
+    }
+
+    new_values = {
         field_name: fields.to_string_representation(
             field, serializer.initial_data[field_name]
         )
         for field_name, field in submitted_fields
     }
 
-    result = {
-        field_name: fields.to_string_representation(field, rep[field_name])
-        for field_name, field in submitted_fields
-    }
-
-    return result != initial
+    return old_values != new_values
 
 
 def get_diff_data(serializer):
