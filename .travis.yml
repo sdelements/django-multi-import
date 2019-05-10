@@ -1,5 +1,7 @@
 sudo: false
 
+dist: xenial
+
 language: python
 
 python:
@@ -7,13 +9,14 @@ python:
   - 3.4
   - 3.5
   - 3.6
+  - 3.7
 
 env:
   global:
     - DEFAULT_PYTHON=2.7
-    - DEFAULT_DJANGO=1.11
+    - DEFAULT_DJANGO=1.11.20
   matrix:
-    - DJANGO=1.11
+    - DJANGO=1.11.20
 
 matrix:
   include:
