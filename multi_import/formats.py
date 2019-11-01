@@ -1,4 +1,5 @@
 import chardet
+import six
 from django.utils.translation import ugettext_lazy as _
 from tablib.formats import _csv, _xls, _xlsx
 from tablib.core import Dataset
@@ -81,6 +82,8 @@ class TabLibFileFormat(FileFormat):
     def write(self, dataset):
         data = self.format.export_set(dataset)
         f = BytesIO()
+        if isinstance(data, six.text_type):
+            data = data.encode('utf-8')
         f.write(data)
         return f
 
@@ -93,6 +96,8 @@ class CsvFormat(TabLibFileFormat):
 
     @classmethod
     def ensure_unicode(cls, file_contents):
+        if isinstance(file_contents, six.text_type):
+            return file_contents
         charset = chardet.detect(file_contents)
         encoding = charset['encoding']
         encoding_confidence = charset['confidence']

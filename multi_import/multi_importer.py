@@ -65,7 +65,7 @@ class MultiImporter(object):
                 else:
                     data[model] = [data_item]
             except(InvalidDatasetError, InvalidFileError) as e:
-                results.add_error(filename, e.message)
+                results.add_error(filename, str(e))
 
         if not results.valid:
             return results
