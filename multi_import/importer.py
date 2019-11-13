@@ -223,7 +223,7 @@ class Importer(object):
         except InvalidFileError as e:
             return ImportResult(
                 key=self.key,
-                error=e.message
+                error=str(e)
             )
 
         return self.import_data(dataset, transaction=False)

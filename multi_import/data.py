@@ -17,6 +17,7 @@ class Row(object):
     """
     Represents a row in an imported Dataset
     """
+
     def __init__(self, row_number, line_number, data):
         self.row_number = row_number
         self.line_number = line_number
@@ -119,6 +120,7 @@ class MultiImportResult(object):
     """
     Results from an attempt to generate an import diff for several files.
     """
+
     def __init__(self):
         self.files = []
         self.errors = {}
