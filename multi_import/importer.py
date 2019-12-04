@@ -1,6 +1,6 @@
 from django.core.exceptions import MultipleObjectsReturned
 from django.utils.translation import ugettext_lazy as _
-from six import string_types
+from six import string_types, text_type
 from tablib import Dataset
 
 from multi_import.cache import CachedQuery, ObjectCache
@@ -104,7 +104,7 @@ class DataReader(object):
                 value = int(value)
 
             if not isinstance(value, string_types):
-                value = unicode(value)
+                value = text_type(value)
 
             data[key] = strings.normalize_string(value)
         return data
