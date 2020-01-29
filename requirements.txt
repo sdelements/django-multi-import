@@ -1,4 +1,4 @@
-Django==1.11.23                         # BSD
+Django==1.11.27                         # BSD
 djangorestframework==3.9.4              # BSD
 six==1.12.0                             # MIT
 chardet==3.0.4                          # LGPL
