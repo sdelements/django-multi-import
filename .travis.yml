@@ -5,22 +5,21 @@ dist: xenial
 language: python
 
 python:
-  - 2.7
-  - 3.4
   - 3.5
   - 3.6
   - 3.7
+  - 3.8
 
 env:
   global:
-    - DEFAULT_PYTHON=2.7
-    - DEFAULT_DJANGO=1.11.20
+    - DEFAULT_PYTHON=3.6
+    - DEFAULT_DJANGO=1.11.27
   matrix:
-    - DJANGO=1.11.20
+    - DJANGO=1.11.27
 
 matrix:
   include:
-    - python: 2.7
+    - python: 3.6
       env: LINT=1
 
 before_install:
