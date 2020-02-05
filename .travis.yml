@@ -4,31 +4,40 @@ dist: xenial
 
 language: python
 
-python:
-  - 3.5
-  - 3.6
-  - 3.7
-  - 3.8
-
-env:
-  global:
-    - DEFAULT_PYTHON=3.6
-    - DEFAULT_DJANGO=1.11.27
-  matrix:
-    - DJANGO=1.11.27
-
 matrix:
   include:
     - python: 3.6
-      env: LINT=1
+      env: LINT=1 DJANGO=1.11
+    - python: 2.7
+      env: DJANGO=1.11
+    - python: 3.6
+      env: DJANGO=1.11
+    - python: 3.6
+      env: DJANGO=2.0
+    - python: 3.6
+      env: DJANGO=2.1
+    - python: 3.6
+      env: DJANGO=2.2
+    - python: 3.6
+      env: DJANGO=3.0
+    - python: 3.7
+      env: DJANGO=1.11
+    - python: 3.7
+      env: DJANGO=2.0
+    - python: 3.7
+      env: DJANGO=2.1
+    - python: 3.7
+      env: DJANGO=2.2
+    - python: 3.7
+      env: DJANGO=3.0
 
 before_install:
   - if [ -z "$DJANGO" ]; then export DJANGO=$DEFAULT_DJANGO; fi
   - if [[ -z "$LINT" && $TRAVIS_PYTHON_VERSION == $DEFAULT_PYTHON && $DJANGO == $DEFAULT_DJANGO ]]; then export COVERAGE=1; fi
 
 install:
-  - pip install -q Django==$DJANGO
   - make init
+  - pip install Django==$DJANGO
   - if [[ $COVERAGE ]]; then pip install python-coveralls; fi
 
 script:
