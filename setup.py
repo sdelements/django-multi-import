@@ -12,8 +12,10 @@ def read_file(filename):
         return ''
 
 install_requires = [
+    'django >= 1.11',
+    'djangorestframework',
     'chardet',
-    'tablib',
+    'tablib == 0.12.1',
     'six',
 ]
 
