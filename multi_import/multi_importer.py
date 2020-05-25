@@ -2,7 +2,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from multi_import.data import MultiExportResult, MultiImportResult
 from multi_import.exceptions import InvalidDatasetError, InvalidFileError
-from multi_import.formats import all_formats
+from multi_import.formats import all_formats, supported_mimetypes
 from multi_import.helpers import files as file_helper
 from multi_import.helpers.transactions import transaction
 
@@ -12,8 +12,10 @@ class MultiImporter(object):
     Coordinates several ImportExporter classes,
     to enable multi-dataset export and imports.
     """
+
     importers = []
     file_formats = all_formats
+    mimetypes = supported_mimetypes
     export_filename = 'export'
 
     error_messages = {
@@ -58,6 +60,9 @@ class MultiImporter(object):
         data = {}
         for filename, file in files.items():
             try:
+                if file.content_type not in self.mimetypes:
+                    raise InvalidFileError('{} file types are not supported. Please upload a .csv or .xslx file.'.format(file.content_type))
+
                 dataset = file_helper.read(self.file_formats, file)
                 model, data_item = self._identify_dataset(filename, dataset)
                 if model in data:
