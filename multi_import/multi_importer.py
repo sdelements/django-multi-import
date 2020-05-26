@@ -61,7 +61,11 @@ class MultiImporter(object):
         for filename, file in files.items():
             try:
                 if file.content_type not in self.mimetypes:
-                    raise InvalidFileError('{} file types are not supported. Please upload a .csv or .xslx file.'.format(file.content_type))
+                    msg = (
+                        '{} file types are not supported. Please upload a .csv'
+                        ' or .xslx file.'.format(file.content_type)
+                    )
+                    raise InvalidFileError(msg)
 
                 dataset = file_helper.read(self.file_formats, file)
                 model, data_item = self._identify_dataset(filename, dataset)
