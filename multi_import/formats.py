@@ -162,4 +162,8 @@ supported_mimetypes = (
     'text/csv',
     'application/vnd.ms-excel',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    # When Content-Type unspecified, defaults to this.
+    # https://sdelements.atlassian.net/browse/LIBR-355
+    # https://stackoverflow.com/questions/12061030/why-am-i-getting-mime-type-of-csv-file-as-application-octet-stream
+    'application/octet-stream',
 )
