@@ -167,8 +167,9 @@ class Importer(object):
                 dataset.append(self.get_export_row(serializer, instance))
 
         return ExportResult(
-            filename=self.get_export_filename(),
             dataset=dataset,
+            filename=self.get_export_filename(),
+            example_row=self.get_example_row(serializer),
             file_formats=self.file_formats
         )
 
@@ -178,6 +179,12 @@ class Importer(object):
             for field_name, field in serializer.get_fields().items()
             if not field.write_only
         ]
+
+    def get_example_row(self, serializer):
+        results = []
+        for column_name in serializer.fields:
+            results.append("")
+        return results
 
     def get_export_row(self, serializer, instance):
         results = []

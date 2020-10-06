@@ -1,7 +1,7 @@
 import chardet
 import six
 from django.utils.translation import ugettext_lazy as _
-from tablib.formats import _csv, _xls, _xlsx
+from tablib.formats import _csv, _json, _xls, _xlsx, _yaml
 from tablib.core import Dataset
 from tablib.compat import BytesIO, StringIO
 
@@ -34,10 +34,17 @@ class FileFormat(object):
 
 
 class TabLibFileFormat(FileFormat):
-    def __init__(self, file_format, content_type, read_file_as_string=False):
+    def __init__(
+        self,
+        file_format,
+        content_type,
+        read_file_as_string=False,
+        empty_file_requires_example_row=False,
+    ):
         self.format = file_format
         self.content_type = content_type
         self.read_file_as_string = read_file_as_string
+        self.empty_file_requires_example_row = empty_file_requires_example_row
 
     @property
     def key(self):
@@ -76,11 +83,14 @@ class TabLibFileFormat(FileFormat):
                 self.format.import_set(dataset, file_object.read())
 
             return dataset
-        except AttributeError:
+        except (AttributeError, KeyError):
             raise InvalidFileError(_(u'Empty or Invalid File.'))
 
+    def export_set(self, dataset):
+        return self.format.export_set(dataset)
+
     def write(self, dataset):
-        data = self.format.export_set(dataset)
+        data = self.export_set(dataset)
         f = BytesIO()
         if isinstance(data, six.text_type):
             data = data.encode('utf-8')
@@ -110,6 +120,39 @@ class CsvFormat(TabLibFileFormat):
         file_object = self.ensure_unicode(file_object)
         file_object = strings.normalize_string(file_object)
         return file_object
+
+
+class JsonFormat(TabLibFileFormat):
+    def __init__(self):
+        super(JsonFormat, self).__init__(
+            _json,
+            'application/json',
+            read_file_as_string=True,
+            empty_file_requires_example_row=True
+        )
+
+    def export_set(self, dataset):
+        return _json.json.dumps(
+            dataset.dict,
+            default=_json.date_handler,
+            sort_keys=True,
+            indent=2
+        )
+
+
+class YamlFormat(TabLibFileFormat):
+    def __init__(self):
+        super(YamlFormat, self).__init__(
+            _yaml,
+            'application/x-yaml',
+            empty_file_requires_example_row=True
+        )
+
+    def export_set(self, dataset):
+        return _yaml.yaml.safe_dump(
+            dataset._package(ordered=False),
+            default_flow_style=False
+        )
 
 
 class TxtFormat(FileFormat):
@@ -150,10 +193,16 @@ xlsx = TabLibFileFormat(
     _xlsx, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 )
 
+json = JsonFormat()
+
+yaml = YamlFormat()
+
 all_formats = (
     xlsx,
     xls,
     csv,
+    json,
+    yaml,
     txt,
 )
 
@@ -162,6 +211,8 @@ supported_mimetypes = (
     'text/csv',
     'application/vnd.ms-excel',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/json',
+    'application/x-yaml',
     # When Content-Type unspecified, defaults to this.
     # https://sdelements.atlassian.net/browse/LIBR-355
     # https://stackoverflow.com/questions/12061030/why-am-i-getting-mime-type-of-csv-file-as-application-octet-stream
