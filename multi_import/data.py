@@ -28,33 +28,31 @@ class Row(object):
         self.diff = None
 
     def set_error(self, message):
-        self.errors = {
-            api_settings.NON_FIELD_ERRORS_KEY: [message]
-        }
+        self.errors = {api_settings.NON_FIELD_ERRORS_KEY: [message]}
 
     def set_errors(self, errors):
         self.errors = errors
 
     def to_json(self):
         return {
-            'row_number': self.row_number,
-            'line_number': self.line_number,
-            'data': self.data,
-            'errors': self.errors,
-            'status': self.status,
-            'diff': self.diff,
+            "row_number": self.row_number,
+            "line_number": self.line_number,
+            "data": self.data,
+            "errors": self.errors,
+            "status": self.status,
+            "diff": self.diff,
         }
 
     @classmethod
     def from_json(cls, data):
         row = cls(
-            row_number=data['row_number'],
-            line_number=data['line_number'],
-            data=data['data']
+            row_number=data["row_number"],
+            line_number=data["line_number"],
+            data=data["data"],
         )
-        row.errors = data['errors']
-        row.status = data['status']
-        row.diff = data['diff']
+        row.errors = data["errors"]
+        row.status = data["status"]
+        row.diff = data["diff"]
         return row
 
 
@@ -76,12 +74,12 @@ class ImportResult(object):
             for key, messages in row.errors.items():
                 for message in messages:
                     error = {
-                        'line_number': row.line_number,
-                        'row_number': row.row_number,
-                        'message': message
+                        "line_number": row.line_number,
+                        "row_number": row.row_number,
+                        "message": message,
                     }
                     if key != api_settings.NON_FIELD_ERRORS_KEY:
-                        error['attribute'] = key
+                        error["attribute"] = key
                     result.append(error)
         return result
 
@@ -103,17 +101,17 @@ class ImportResult(object):
 
     def to_json(self):
         return {
-            'key': self.key,
-            'headers': self.headers,
-            'rows': [row.to_json() for row in self.rows],
+            "key": self.key,
+            "headers": self.headers,
+            "rows": [row.to_json() for row in self.rows],
         }
 
     @classmethod
     def from_json(cls, data):
         return cls(
-            key=data['key'],
-            headers=data['headers'],
-            rows=[Row.from_json(row) for row in data['rows']]
+            key=data["key"],
+            headers=data["headers"],
+            rows=[Row.from_json(row) for row in data["rows"]],
         )
 
 
@@ -134,29 +132,21 @@ class MultiImportResult(object):
         if result.valid is False:
             self.errors[filename] = result.errors
 
-        self.files.append({
-            'filename': filename,
-            'result': result
-        })
+        self.files.append({"filename": filename, "result": result})
 
     def add_error(self, filename, message):
-        self.errors[filename] = [{'message': message}]
+        self.errors[filename] = [{"message": message}]
 
     def num_changes(self):
-        return sum(
-            len(file['result'].changes) for file in self.files
-        )
+        return sum(len(file["result"].changes) for file in self.files)
 
     def has_changes(self):
-        return any(file['result'].changes for file in self.files)
+        return any(file["result"].changes for file in self.files)
 
     def to_json(self):
         return {
-            'files': [
-                {
-                    'filename': file['filename'],
-                    'result': file['result'].to_json(),
-                }
+            "files": [
+                {"filename": file["filename"], "result": file["result"].to_json()}
                 for file in self.files
             ]
         }
@@ -164,9 +154,8 @@ class MultiImportResult(object):
     @classmethod
     def from_json(cls, data):
         result = cls()
-        for file in data['files']:
-            result.add_result(file['filename'],
-                              ImportResult.from_json(file['result']))
+        for file in data["files"]:
+            result.add_result(file["filename"], ImportResult.from_json(file["result"]))
         return result
 
 
@@ -189,14 +178,11 @@ class ExportResult(object):
         format = self._get_format(file_format)
         file = self.get_file(format)
 
-        filename = "{0}.{1}".format(
-            filename or self.filename, format.extension
-        )
+        filename = "{0}.{1}".format(filename or self.filename, format.extension)
 
-        response = HttpResponse(file.getvalue(),
-                                content_type=format.content_type)
-        header = 'attachment; filename={0}'.format(filename)
-        response['Content-Disposition'] = header
+        response = HttpResponse(file.getvalue(), content_type=format.content_type)
+        header = "attachment; filename={0}".format(filename)
+        response["Content-Disposition"] = header
         return response
 
     def _get_format(self, file_format):
@@ -230,12 +216,12 @@ class MultiExportResult(object):
             return self.results[0].get_http_response(format, filename)
 
         file = self.get_file(format)
-        content_type = 'application-x-zip-compressed'
+        content_type = "application-x-zip-compressed"
         filename = "{0}.zip".format(filename or self.filename)
 
         response = HttpResponse(file.getvalue(), content_type=content_type)
-        header = 'attachment; filename={0}'.format(filename)
-        response['Content-Disposition'] = header
+        header = "attachment; filename={0}".format(filename)
+        response["Content-Disposition"] = header
         return response
 
     def _get_format(self, file_format):

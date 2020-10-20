@@ -6,12 +6,11 @@ from tablib.compat import unicode
 
 
 class CachedObject(object):
-
     def __init__(self, obj):
         self.obj = obj
 
     def __hash__(self):
-        if hasattr(self.obj, 'pk') and not getattr(self.obj, 'pk', None):
+        if hasattr(self.obj, "pk") and not getattr(self.obj, "pk", None):
             return super(CachedObject, self).__hash__()
         return self.obj.__hash__()
 
@@ -33,10 +32,8 @@ class ObjectCache(object):
 
         fields_to_cache = (
             (field, value)
-            for field, value in
-            (
-                (field, getattr(obj, field, None))
-                for field in self.cache_fields
+            for field, value in (
+                (field, getattr(obj, field, None)) for field in self.cache_fields
             )
             if value is not None
         )
@@ -56,15 +53,9 @@ class ObjectCache(object):
         if any(f not in self.objects or v is None for f, v in zipped_values):
             return default
 
-        result_sets = [
-            self.objects[f][unicode(v)]
-            for f, v in zipped_values
-        ]
+        result_sets = [self.objects[f][unicode(v)] for f, v in zipped_values]
 
-        results = [
-            result.obj
-            for result in set.intersection(*result_sets)
-        ]
+        results = [result.obj for result in set.intersection(*result_sets)]
 
         return self.to_result(results) or default
 
@@ -99,8 +90,8 @@ class ObjectCache(object):
 
     def _flatten_fields(self, fields):
         return set(
-            item for sublist in
-            (
+            item
+            for sublist in (
                 (item,) if isinstance(item, six.string_types) else item
                 for item in fields
             )

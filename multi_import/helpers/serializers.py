@@ -7,19 +7,21 @@ from tablib.compat import unicode
 from multi_import.helpers import fields, strings
 
 
-FieldChange = namedtuple('FieldChange', ['field', 'old', 'new', 'value'])
+FieldChange = namedtuple("FieldChange", ["field", "old", "new", "value"])
 
 
 def get_related_fields(serializer):
     return [
-        field for field in serializer.fields.values()
+        field
+        for field in serializer.fields.values()
         if isinstance(field, relations.RelatedField)
     ]
 
 
 def get_many_related_fields(serializer):
     return [
-        field for field in serializer.fields.values()
+        field
+        for field in serializer.fields.values()
         if isinstance(field, relations.ManyRelatedField)
     ]
 
@@ -31,20 +33,21 @@ def get_dependencies(serializer):
     result = []
 
     field_querysets = [
-        (field, field.queryset)
-        for field in get_related_fields(serializer)
+        (field, field.queryset) for field in get_related_fields(serializer)
     ]
 
-    field_querysets.extend([
-        (field, field.child_relation.queryset)
-        for field in get_many_related_fields(serializer)
-    ])
+    field_querysets.extend(
+        [
+            (field, field.child_relation.queryset)
+            for field in get_many_related_fields(serializer)
+        ]
+    )
 
     for field, queryset in field_querysets:
         if field.read_only:
             continue
 
-        if hasattr(queryset, 'model'):
+        if hasattr(queryset, "model"):
             model = queryset.model
         else:
             model = queryset.related_model
@@ -85,10 +88,7 @@ def get_changed_fields(serializer, validated_data=None):
             old_value = strings.normalize_string(old_value)
 
         if old_value != new_value:
-            result[field_name] = FieldChange(field,
-                                             old_value,
-                                             new_value,
-                                             value)
+            result[field_name] = FieldChange(field, old_value, new_value, value)
 
     return result
 
@@ -102,7 +102,8 @@ def might_have_changes(serializer):
         (field_name, field)
         for field_name, field in serializer.fields.items()
         if field_name in serializer.initial_data
-        and not field.read_only and not field.write_only
+        and not field.read_only
+        and not field.write_only
     ]
 
     orig_rep = get_original_representation(serializer)
@@ -110,7 +111,8 @@ def might_have_changes(serializer):
     old_values = {
         field_name: (
             fields.to_string_representation(field, orig_rep[field_name])
-            if field_name in orig_rep else ""
+            if field_name in orig_rep
+            else ""
         )
         for field_name, field in submitted_fields
     }
@@ -142,11 +144,9 @@ def get_diff_data(serializer):
         data[column_name] = field_data = []
 
         if column_name in orig:
-            field_data.append(
-                fields.to_string_representation(field, orig[column_name])
-            )
+            field_data.append(fields.to_string_representation(field, orig[column_name]))
         else:
-            field_data.append(u'')
+            field_data.append(u"")
 
         field_change = changed_fields.get(column_name, None)
 
@@ -155,8 +155,6 @@ def get_diff_data(serializer):
 
         new_value = field_change.new
 
-        field_data.append(
-            fields.to_string_representation(field, new_value)
-        )
+        field_data.append(fields.to_string_representation(field, new_value))
 
     return data

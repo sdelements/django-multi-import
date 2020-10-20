@@ -9,43 +9,40 @@ def read_file(filename):
     try:
         return open(filepath).read()
     except IOError:
-        return ''
+        return ""
 
-install_requires = [
-    'chardet',
-    'tablib',
-    'six',
-]
+
+install_requires = ["chardet", "tablib", "six"]
 
 
 setup(
-    name='django-multi_import',
-    version='1.0.5',
-    author='Simon Bartlett',
-    author_email='simon@securitycompass.com',
+    name="django-multi_import",
+    version="1.0.5",
+    author="Simon Bartlett",
+    author_email="simon@securitycompass.com",
     packages=find_packages(),
     include_package_data=True,
-    url='https://github.com/sdelements/django-multi-importer',
-    license='MIT',
-    description='Import/export multi Django resources together atomically',
+    url="https://github.com/sdelements/django-multi-importer",
+    license="MIT",
+    description="Import/export multi Django resources together atomically",
     classifiers=[
-        'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
-        'Intended Audience :: Developers',
-        'Programming Language :: Python',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
-        'Framework :: Django',
-        'Development Status :: 4 - Beta',
-        'Operating System :: OS Independent',
+        "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+        "Intended Audience :: Developers",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.4",
+        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Framework :: Django",
+        "Development Status :: 4 - Beta",
+        "Operating System :: OS Independent",
     ],
-    long_description=read_file('README.rst'),
+    long_description=read_file("README.rst"),
     test_suite="runtests.runtests",
     zip_safe=False,
-    requires=['django (>=1.11)', 'djangorestframework (>=3.0)'],
-    install_requires=install_requires
+    requires=["django (>=1.11)", "djangorestframework (>=3.0)"],
+    install_requires=install_requires,
 )

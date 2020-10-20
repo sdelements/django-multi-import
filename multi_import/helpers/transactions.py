@@ -7,8 +7,8 @@ class TransactionRollbackError(Exception):
 
 def transaction(function):
     def wrapper(*args, **kwargs):
-        commit = kwargs.pop('commit', True)
-        trans = kwargs.pop('transaction', True)
+        commit = kwargs.pop("commit", True)
+        trans = kwargs.pop("transaction", True)
 
         if not trans:
             return function(*args, **kwargs)
@@ -19,7 +19,7 @@ def transaction(function):
             with db.transaction.atomic():
                 result = function(*args, **kwargs)
 
-                if not commit or not getattr(result, 'valid', True):
+                if not commit or not getattr(result, "valid", True):
                     raise TransactionRollbackError()
 
         except TransactionRollbackError:

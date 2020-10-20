@@ -84,7 +84,7 @@ class TabLibFileFormat(FileFormat):
 
             return dataset
         except (AttributeError, KeyError):
-            raise InvalidFileError(_(u'Empty or Invalid File.'))
+            raise InvalidFileError(_(u"Empty or Invalid File."))
 
     def export_set(self, dataset):
         return self.format.export_set(dataset)
@@ -93,7 +93,7 @@ class TabLibFileFormat(FileFormat):
         data = self.export_set(dataset)
         f = BytesIO()
         if isinstance(data, six.text_type):
-            data = data.encode('utf-8')
+            data = data.encode("utf-8")
         f.write(data)
         return f
 
@@ -101,7 +101,7 @@ class TabLibFileFormat(FileFormat):
 class CsvFormat(TabLibFileFormat):
     def __init__(self):
         super(CsvFormat, self).__init__(
-            _csv, 'application/csv', read_file_as_string=True
+            _csv, "application/csv", read_file_as_string=True
         )
 
     @classmethod
@@ -109,12 +109,12 @@ class CsvFormat(TabLibFileFormat):
         if isinstance(file_contents, six.text_type):
             return file_contents
         charset = chardet.detect(file_contents)
-        encoding = charset['encoding']
-        encoding_confidence = charset['confidence']
+        encoding = charset["encoding"]
+        encoding_confidence = charset["confidence"]
         if encoding and encoding_confidence > 0.5:
-            return file_contents.decode(encoding.lower()).encode('utf8')
+            return file_contents.decode(encoding.lower()).encode("utf8")
         else:
-            raise InvalidFileError(_(u'Unknown file type.'))
+            raise InvalidFileError(_(u"Unknown file type."))
 
     def pre_read(self, file_object):
         file_object = self.ensure_unicode(file_object)
@@ -126,38 +126,32 @@ class JsonFormat(TabLibFileFormat):
     def __init__(self):
         super(JsonFormat, self).__init__(
             _json,
-            'application/json',
+            "application/json",
             read_file_as_string=True,
-            empty_file_requires_example_row=True
+            empty_file_requires_example_row=True,
         )
 
     def export_set(self, dataset):
         return _json.json.dumps(
-            dataset.dict,
-            default=_json.date_handler,
-            sort_keys=True,
-            indent=2
+            dataset.dict, default=_json.date_handler, sort_keys=True, indent=2
         )
 
 
 class YamlFormat(TabLibFileFormat):
     def __init__(self):
         super(YamlFormat, self).__init__(
-            _yaml,
-            'application/x-yaml',
-            empty_file_requires_example_row=True
+            _yaml, "application/x-yaml", empty_file_requires_example_row=True
         )
 
     def export_set(self, dataset):
         return _yaml.yaml.safe_dump(
-            dataset._package(ordered=False),
-            default_flow_style=False
+            dataset._package(ordered=False), default_flow_style=False
         )
 
 
 class TxtFormat(FileFormat):
-    title = 'txt'
-    content_type = 'text/plain'
+    title = "txt"
+    content_type = "text/plain"
 
     def detect(self, file_handler, file_contents):
         return False
@@ -171,11 +165,11 @@ class TxtFormat(FileFormat):
 
         for row in dataset._package():
             for key, val in row.items():
-                stream.write('-' * len(key) + '\n')
-                stream.write(key.encode('utf-8') + '\n')
-                stream.write('-' * len(key) + '\n')
-                stream.write(val.encode('utf-8') + '\n\n')
-            stream.write('\n' + '*' * 50 + '\n\n\n')
+                stream.write("-" * len(key) + "\n")
+                stream.write(key.encode("utf-8") + "\n")
+                stream.write("-" * len(key) + "\n")
+                stream.write(val.encode("utf-8") + "\n\n")
+            stream.write("\n" + "*" * 50 + "\n\n\n")
 
         f.write(stream.getvalue())
         return f
@@ -185,36 +179,27 @@ csv = CsvFormat()
 
 txt = TxtFormat()
 
-xls = TabLibFileFormat(
-    _xls, 'application/vnd.ms-excel', read_file_as_string=True
-)
+xls = TabLibFileFormat(_xls, "application/vnd.ms-excel", read_file_as_string=True)
 
 xlsx = TabLibFileFormat(
-    _xlsx, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    _xlsx, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 )
 
 json = JsonFormat()
 
 yaml = YamlFormat()
 
-all_formats = (
-    xlsx,
-    xls,
-    csv,
-    json,
-    yaml,
-    txt,
-)
+all_formats = (xlsx, xls, csv, json, yaml, txt)
 
 supported_mimetypes = (
-    'text/plain',
-    'text/csv',
-    'application/vnd.ms-excel',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'application/json',
-    'application/x-yaml',
+    "text/plain",
+    "text/csv",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/json",
+    "application/x-yaml",
     # When Content-Type unspecified, defaults to this.
     # https://sdelements.atlassian.net/browse/LIBR-355
     # https://stackoverflow.com/questions/12061030/why-am-i-getting-mime-type-of-csv-file-as-application-octet-stream
-    'application/octet-stream',
+    "application/octet-stream",
 )

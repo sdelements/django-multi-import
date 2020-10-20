@@ -9,14 +9,11 @@ def find_format(file_formats, file_format=None):
     if isinstance(file_format, FileFormat):
         return file_format
 
-    return next(
-        (f for f in file_formats if f.key == file_format),
-        file_formats[0]
-    )
+    return next((f for f in file_formats if f.key == file_format), file_formats[0])
 
 
 def decode_contents(file_contents):
-    encodings = ['UTF-8', 'UTF-16', 'ISO-8859-1']
+    encodings = ["UTF-8", "UTF-16", "ISO-8859-1"]
 
     for encoding in encodings:
         try:
@@ -24,7 +21,7 @@ def decode_contents(file_contents):
         except UnicodeDecodeError:
             pass
 
-    raise InvalidFileError(_(u'File encoding not identified.'))
+    raise InvalidFileError(_(u"File encoding not identified."))
 
 
 def read(file_formats, file):
@@ -41,6 +38,6 @@ def read(file_formats, file):
             pass
 
         except (tablib.InvalidDimensions, tablib.UnsupportedFormat):
-            raise InvalidFileError(_(u'Empty or Invalid File.'))
+            raise InvalidFileError(_(u"Empty or Invalid File."))
 
-    raise InvalidFileError(_(u'Invalid File Type.'))
+    raise InvalidFileError(_(u"Invalid File Type."))

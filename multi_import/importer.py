@@ -20,10 +20,7 @@ class RowData(object):
 class Rows(object):
     def __init__(self, headers, rows=None):
         self.headers = headers
-        self.rows = [
-            (row, RowData())
-            for row in rows or []
-        ]
+        self.rows = [(row, RowData()) for row in rows or []]
 
     def __iter__(self):
         for row in self.rows:
@@ -40,17 +37,11 @@ class DataReader(object):
     def read(self, data):
         if isinstance(data, Dataset):
             return self.read_dataset(data)
-        return Rows(
-            headers=data.headers,
-            rows=data.rows
-        )
+        return Rows(headers=data.headers, rows=data.rows)
 
     def read_dataset(self, dataset):
         rows = self.read_dataset_rows(dataset)
-        return Rows(
-            headers=dataset.headers,
-            rows=self.enumerate_data(rows)
-        )
+        return Rows(headers=dataset.headers, rows=self.enumerate_data(rows))
 
     def enumerate_data(self, data):
         """
@@ -65,16 +56,13 @@ class DataReader(object):
                 continue
 
             line_number = first_row_line_number + line_count
-            line_count += 1 + sum([
-                value.count('\n') for value in row_data.values()
-            ])
+            line_count += 1 + sum([value.count("\n") for value in row_data.values()])
 
             yield Row(row_number, line_number, row_data)
 
     def has_values(self, row_data):
         return any(
-            value for value in row_data.values()
-            if value and not value.isspace()
+            value for value in row_data.values() if value and not value.isspace()
         )
 
     def read_dataset_rows(self, dataset):
@@ -98,7 +86,7 @@ class DataReader(object):
         data = {}
         for key, value in row_data.items():
             if value is None:
-                value = ''
+                value = ""
 
             if isinstance(value, float) and value.is_integer():
                 value = int(value)
@@ -114,7 +102,7 @@ class Importer(object):
     key = None
     model = None
     id_column = None
-    lookup_fields = ('pk',)
+    lookup_fields = ("pk",)
     file_formats = all_formats
     export_filename = None
 
@@ -122,9 +110,9 @@ class Importer(object):
     serializer = None
 
     error_messages = {
-        'cannot_update': _(u'Can not update this item.'),
-        'multiple_matches': _(u'Multiple database entries match.'),
-        'multiple_updates': _(u'This item is being updated more than once.')
+        "cannot_update": _(u"Can not update this item."),
+        "multiple_matches": _(u"Multiple database entries match."),
+        "multiple_updates": _(u"This item is being updated more than once."),
     }
 
     def __init__(self):
@@ -170,7 +158,7 @@ class Importer(object):
             dataset=dataset,
             filename=self.get_export_filename(),
             example_row=self.get_example_row(serializer),
-            file_formats=self.file_formats
+            file_formats=self.file_formats,
         )
 
     def get_export_header(self, serializer):
@@ -199,39 +187,31 @@ class Importer(object):
     def get_serializer_context(self, context=None):
         context = context.copy() if context else {}
 
-        if 'model_contexts' not in context:
-            context['model_contexts'] = {}
+        if "model_contexts" not in context:
+            context["model_contexts"] = {}
 
-        if self.model not in context['model_contexts']:
-            context['model_contexts'][self.model] = self.get_model_context()
+        if self.model not in context["model_contexts"]:
+            context["model_contexts"][self.model] = self.get_model_context()
 
-        context['cached_query'] = self.get_cached_query()
+        context["cached_query"] = self.get_cached_query()
 
         return context
 
     def get_model_context(self):
-        return {
-            'new_objects': ObjectCache(self.lookup_fields),
-            'loaded_pks': set()
-        }
+        return {"new_objects": ObjectCache(self.lookup_fields), "loaded_pks": set()}
 
     def can_update_object(self, instance):
         return True
 
     def get_cached_query(self):
-        return self.cached_query(
-            self.get_import_queryset(), self.lookup_fields
-        )
+        return self.cached_query(self.get_import_queryset(), self.lookup_fields)
 
     @transaction
     def import_file(self, file):
         try:
             dataset = files.read(self.file_formats, file)
         except InvalidFileError as e:
-            return ImportResult(
-                key=self.key,
-                error=str(e)
-            )
+            return ImportResult(key=self.key, error=str(e))
 
         return self.import_data(dataset, transaction=False)
 
@@ -266,9 +246,7 @@ class Importer(object):
                 self.process_row(row, data, context)
 
         return ImportResult(
-            key=self.key,
-            headers=rows.headers,
-            rows=[row for row, data in rows.rows]
+            key=self.key, headers=rows.headers, rows=[row for row, data in rows.rows]
         )
 
     def enumerate_data(self, data):
@@ -280,27 +258,25 @@ class Importer(object):
 
         for row_number, row_data in enumerate(data, start=2):
             line_number = first_row_line_number + line_count
-            line_count += 1 + sum([
-                value.count('\n') for value in row_data.values()
-            ])
+            line_count += 1 + sum([value.count("\n") for value in row_data.values()])
             yield Row(row_number, line_number, row_data)
 
     def load_instance(self, row, data, context):
-        cached_query = context['cached_query']
+        cached_query = context["cached_query"]
         try:
             lookup_data = self.get_lookup_data(row)
             instance = self.lookup_model_object(cached_query, lookup_data)
 
         except MultipleObjectsReturned:
-            row.set_error(self.error_messages['multiple_matches'])
+            row.set_error(self.error_messages["multiple_matches"])
             data.processed = True
 
         if not instance:
             return
 
-        pk_set = context['model_contexts'][self.model]['loaded_pks']
+        pk_set = context["model_contexts"][self.model]["loaded_pks"]
         if instance.pk in pk_set:
-            row.set_error(self.error_messages['multiple_updates'])
+            row.set_error(self.error_messages["multiple_updates"])
             data.processed = True
         else:
             pk_set.add(instance.pk)
@@ -322,10 +298,12 @@ class Importer(object):
         if data.processed:
             return
 
-        serializer = self.serializer(instance=data.instance,
-                                     data=row.data.copy(),
-                                     context=context,
-                                     partial=data.instance is not None)
+        serializer = self.serializer(
+            instance=data.instance,
+            data=row.data.copy(),
+            context=context,
+            partial=data.instance is not None,
+        )
 
         if not serializers.might_have_changes(serializer):
             row.status = RowStatus.unchanged
@@ -342,7 +320,7 @@ class Importer(object):
         )
 
         if cannot_update:
-            row.set_error(self.error_messages['cannot_update'])
+            row.set_error(self.error_messages["cannot_update"])
             data.processed = True
             return
 
@@ -370,5 +348,5 @@ class Importer(object):
             self.cache_instance(context, data.instance)
 
     def cache_instance(self, context, instance):
-        new_object_cache = context['model_contexts'][self.model]['new_objects']
+        new_object_cache = context["model_contexts"][self.model]["new_objects"]
         new_object_cache.add(instance)

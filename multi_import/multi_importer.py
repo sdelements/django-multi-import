@@ -16,23 +16,18 @@ class MultiImporter(object):
     importers = []
     file_formats = all_formats
     mimetypes = supported_mimetypes
-    export_filename = 'export'
+    export_filename = "export"
 
     error_messages = {
-        'invalid_key': _(
-            u'Columns should match those in the import template.'
-        ),
-        'invalid_export_keys': _(u'Invalid keys {0} for exporting')
+        "invalid_key": _(u"Columns should match those in the import template."),
+        "invalid_export_keys": _(u"Invalid keys {0} for exporting"),
     }
 
     def __init__(self):
         import_export_managers = [
-            cls(**self.get_importer_kwargs())
-            for cls in self.importers
+            cls(**self.get_importer_kwargs()) for cls in self.importers
         ]
-        self.importer_instances = self._sort_importers(
-            import_export_managers
-        )
+        self.importer_instances = self._sort_importers(import_export_managers)
 
     def get_export_filename(self):
         return self.export_filename
@@ -43,14 +38,12 @@ class MultiImporter(object):
     def export(self, empty=False, keys=None):
         exporters = self._get_exporters(keys)
 
-        results = tuple(
-            exporter.export(empty=empty) for exporter in exporters
-        )
+        results = tuple(exporter.export(empty=empty) for exporter in exporters)
 
         return MultiExportResult(
             filename=self.get_export_filename(),
             file_formats=self.file_formats,
-            results=results
+            results=results,
         )
 
     @transaction
@@ -62,8 +55,8 @@ class MultiImporter(object):
             try:
                 if file.content_type not in self.mimetypes:
                     msg = (
-                        '{} file types are not supported. Please upload a .csv'
-                        ' or .xslx file.'.format(file.content_type)
+                        "{} file types are not supported. Please upload a .csv"
+                        " or .xslx file.".format(file.content_type)
                     )
                     raise InvalidFileError(msg)
 
@@ -73,7 +66,7 @@ class MultiImporter(object):
                     data[model].append(data_item)
                 else:
                     data[model] = [data_item]
-            except(InvalidDatasetError, InvalidFileError) as e:
+            except (InvalidDatasetError, InvalidFileError) as e:
                 results.add_error(filename, str(e))
 
         if not results.valid:
@@ -86,7 +79,7 @@ class MultiImporter(object):
         results = MultiImportResult()
 
         context = {
-            'model_contexts': {
+            "model_contexts": {
                 importer.model: importer.get_model_context()
                 for importer in self.importer_instances
             }
@@ -122,10 +115,12 @@ class MultiImporter(object):
             else:
                 models = [result.model for result in results]
                 try:
-                    index = 1 + max([
-                        models.index(dependency)
-                        for dependency in importer.dependencies
-                    ])
+                    index = 1 + max(
+                        [
+                            models.index(dependency)
+                            for dependency in importer.dependencies
+                        ]
+                    )
                 except ValueError:
                     index = -1
 
@@ -140,30 +135,26 @@ class MultiImporter(object):
             return self.importer_instances
 
         # Check to make sure we're not passing in bad keys
-        all_valid_keys = [
-            exporter.key for exporter in self.importer_instances
-        ]
+        all_valid_keys = [exporter.key for exporter in self.importer_instances]
         invalid_keys = [key for key in keys if key not in all_valid_keys]
         if invalid_keys:
-            error_key = 'invalid_export_keys'
-            joined_keys = ','.join(invalid_keys)
-            raise ValueError(
-                self.error_messages[error_key].format(joined_keys)
-            )
+            error_key = "invalid_export_keys"
+            joined_keys = ",".join(invalid_keys)
+            raise ValueError(self.error_messages[error_key].format(joined_keys))
 
         return (
-            exporter for exporter in self.importer_instances
-            if exporter.key in keys
+            exporter for exporter in self.importer_instances if exporter.key in keys
         )
 
     def _identify_dataset(self, filename, dataset):
         models = (
-            importer.model for importer in self.importer_instances
+            importer.model
+            for importer in self.importer_instances
             if importer.id_column in dataset.headers
         )
         model = next(models, None)
         if not model:
-            raise InvalidDatasetError(self.error_messages['invalid_key'])
+            raise InvalidDatasetError(self.error_messages["invalid_key"])
 
         return model, (filename, dataset)
 
@@ -171,9 +162,9 @@ class MultiImporter(object):
         for importer in self.importer_instances:
             if isinstance(input_data, MultiImportResult):
                 datasets = [
-                    (f['filename'], f['result'])
+                    (f["filename"], f["result"])
                     for f in input_data.files
-                    if f['result'].key == importer.key
+                    if f["result"].key == importer.key
                 ]
             else:
                 datasets = input_data.get(importer.model)
