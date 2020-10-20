@@ -203,8 +203,13 @@ class Importer(object):
     def can_update_object(self, instance):
         return True
 
+    def get_cached_query_class(self):
+        return self.cached_query
+
     def get_cached_query(self):
-        return self.cached_query(self.get_import_queryset(), self.lookup_fields)
+        return self.get_cached_query_class()(
+            self.get_import_queryset(), self.lookup_fields
+        )
 
     @transaction
     def import_file(self, file):
