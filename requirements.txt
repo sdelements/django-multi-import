@@ -5,4 +5,4 @@ chardet==3.0.4                          # LGPL
 tablib==0.12.1                          # MIT
 
 coverage==4.2                           # Apache
-flake8==3.0.4                           # MIT
+flake8==3.8.4                           # MIT

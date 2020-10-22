@@ -95,7 +95,7 @@ class MultiImporter(object):
                 for filename, dataset in datasets
             ]
 
-            for filename, rows in read_datasets:
+            for _filename, rows in read_datasets:
                 importer.load_instances(rows, serializer_context)
 
             for filename, rows in read_datasets:

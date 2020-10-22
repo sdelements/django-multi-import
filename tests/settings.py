@@ -9,4 +9,4 @@ INSTALLED_APPS = ("tests",)
 
 SITE_ID = 1
 
-SECRET_KEY = "this-is-just-for-tests-so-not-that-secret"
+SECRET_KEY = "this-is-just-for-tests-so-not-that-secret"  # noqa

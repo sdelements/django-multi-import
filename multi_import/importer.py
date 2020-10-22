@@ -170,7 +170,7 @@ class Importer(object):
 
     def get_example_row(self, serializer):
         results = []
-        for column_name in serializer.fields:
+        for _column_name in serializer.fields:
             results.append("")
         return results
 
