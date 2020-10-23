@@ -1,4 +1,4 @@
-from django.core.exceptions import MultipleObjectsReturned
+from django.core.exceptions import MultipleObjectsReturned, ValidationError
 from django.utils.translation import ugettext_lazy as _
 from six import string_types, text_type
 from tablib import Dataset
@@ -8,6 +8,7 @@ from multi_import.data import ImportResult, RowStatus, Row, ExportResult
 from multi_import.exceptions import InvalidFileError
 from multi_import.formats import all_formats
 from multi_import.helpers import fields, files, serializers, strings
+from multi_import.helpers.exceptions import get_errors
 from multi_import.helpers.transactions import transaction
 
 
@@ -335,17 +336,29 @@ class Importer(object):
             return
 
         if serializer.instance:
-            row.status = RowStatus.update
-            row.diff = serializers.get_diff_data(serializer)
-            serializer.save()
+            try:
+                diff = serializers.get_diff_data(serializer)
+                serializer.save()
+                row.status = RowStatus.update
+                row.diff = diff
+            except ValidationError as ex:
+                errors = get_errors(ex)
+                row.set_errors(errors)
+
             data.processed = True
 
         else:
-            row.status = RowStatus.new
-            row.diff = serializers.get_diff_data(serializer)
-            data.instance = serializer.save()
+            try:
+                diff = serializers.get_diff_data(serializer)
+                data.instance = serializer.save()
+                row.status = RowStatus.new
+                row.diff = diff
+                self.cache_instance(context, data.instance)
+            except ValidationError as ex:
+                errors = get_errors(ex)
+                row.set_errors(errors)
+
             data.processed = True
-            self.cache_instance(context, data.instance)
 
     def cache_instance(self, context, instance):
         new_object_cache = context["model_contexts"][self.model]["new_objects"]
