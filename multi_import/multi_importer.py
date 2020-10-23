@@ -61,11 +61,11 @@ class MultiImporter(object):
                     raise InvalidFileError(msg)
 
                 dataset = file_helper.read(self.file_formats, file)
-                model, data_item = self._identify_dataset(filename, dataset)
-                if model in data:
-                    data[model].append(data_item)
+                import_key, data_item = self._identify_dataset(filename, dataset)
+                if import_key in data:
+                    data[import_key].append(data_item)
                 else:
-                    data[model] = [data_item]
+                    data[import_key] = [data_item]
             except (InvalidDatasetError, InvalidFileError) as e:
                 results.add_error(filename, str(e))
 
@@ -147,16 +147,16 @@ class MultiImporter(object):
         )
 
     def _identify_dataset(self, filename, dataset):
-        models = (
-            importer.model
+        importer_keys = (
+            importer.key
             for importer in self.importer_instances
             if importer.id_column in dataset.headers
         )
-        model = next(models, None)
-        if not model:
+        key = next(importer_keys, None)
+        if not key:
             raise InvalidDatasetError(self.error_messages["invalid_key"])
 
-        return model, (filename, dataset)
+        return key, (filename, dataset)
 
     def _transform_multi_input(self, input_data):
         for importer in self.importer_instances:
@@ -167,7 +167,7 @@ class MultiImporter(object):
                     if f["result"].key == importer.key
                 ]
             else:
-                datasets = input_data.get(importer.model)
+                datasets = input_data.get(importer.key)
 
             if datasets:
                 yield (importer, datasets)
