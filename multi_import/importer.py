@@ -147,8 +147,9 @@ class Importer(object):
     def get_import_queryset(self):
         return self.get_queryset()
 
-    def export(self, empty=False):
-        serializer = self.empty_serializer
+    def export(self, empty=False, context=None):
+        serializer_context = self.get_export_serializer_context(context)
+        serializer = self.serializer(context=serializer_context)
         dataset = Dataset(headers=self.get_export_header(serializer))
 
         if not empty:
@@ -186,7 +187,13 @@ class Importer(object):
         return results
 
     def get_serializer_context(self, context=None):
-        context = context.copy() if context else {}
+        return context.copy() if context else {}
+
+    def get_export_serializer_context(self, context=None):
+        return self.get_serializer_context(context)
+
+    def get_import_serializer_context(self, context=None):
+        context = self.get_serializer_context(context)
 
         if "model_contexts" not in context:
             context["model_contexts"] = {}
@@ -208,17 +215,17 @@ class Importer(object):
         return self.cached_query(self.get_import_queryset(), self.lookup_fields)
 
     @transaction
-    def import_file(self, file):
+    def import_file(self, file, context=None):
         try:
             dataset = files.read(self.file_formats, file)
         except InvalidFileError as e:
             return ImportResult(key=self.key, error=str(e))
 
-        return self.import_data(dataset, transaction=False)
+        return self.import_data(dataset, context=context, transaction=False)
 
     @transaction
     def import_data(self, data, context=None):
-        serializer_context = self.get_serializer_context(context)
+        serializer_context = self.get_import_serializer_context(context)
 
         rows = self.read_rows(data)
 

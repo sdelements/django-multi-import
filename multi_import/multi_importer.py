@@ -88,7 +88,7 @@ class MultiImporter(object):
         bound_importers = self._transform_multi_input(data)
 
         for importer, datasets in bound_importers:
-            serializer_context = importer.get_serializer_context(context)
+            serializer_context = importer.get_import_serializer_context(context)
 
             read_datasets = [
                 (filename, importer.read_rows(dataset))
