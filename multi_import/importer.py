@@ -1,5 +1,6 @@
 from django.core.exceptions import MultipleObjectsReturned, ValidationError
 from django.utils.translation import ugettext_lazy as _
+from rest_framework.serializers import Serializer
 from six import string_types, text_type
 from tablib import Dataset
 
@@ -16,6 +17,7 @@ class RowData(object):
     def __init__(self):
         self.instance = None
         self.processed = False
+        self.serializer = None
 
 
 class Rows(object):
@@ -97,6 +99,31 @@ class DataReader(object):
 
             data[key] = strings.normalize_string(value)
         return data
+
+
+class PostSaveValidator(Serializer):
+    def __init__(self, row=None, serializer=None, *args, **kwargs):
+        self.row = row
+        self.serializer = serializer
+        super().__init__(*args, **kwargs)
+
+    def get_validators(self):
+        meta = getattr(self.serializer, "Meta", None)
+        key = (
+            "post_create_validators"
+            if self.row.status == RowStatus.new
+            else "post_update_validators"
+        )
+        return getattr(meta, key, [])
+
+    def to_internal_value(self, data):
+        return data
+
+    def create(self, validated_data):
+        raise NotImplemented()
+
+    def update(self, instance, validated_data):
+        raise NotImplemented()
 
 
 class Importer(object):
@@ -231,7 +258,9 @@ class Importer(object):
 
         self.load_instances(rows, serializer_context)
 
-        return self.process_rows(rows, serializer_context)
+        self.process_rows(rows, serializer_context)
+        self.validate_rows_post_save(rows)
+        return self.transform_rows_to_result(rows)
 
     def read_rows(self, data):
         data_reader = DataReader(self.empty_serializer)
@@ -250,9 +279,14 @@ class Importer(object):
 
         # Then create new objects
         for row, data in rows:
-            if not data.instance:
+            if not data.processed:
                 self.process_row(row, data, context)
 
+    def validate_rows_post_save(self, rows):
+        for row, data in rows:
+            self.validate_row_post_save(row, data)
+
+    def transform_rows_to_result(self, rows):
         return ImportResult(
             key=self.key, headers=rows.headers, rows=[row for row, data in rows.rows]
         )
@@ -342,30 +376,38 @@ class Importer(object):
             data.processed = True
             return
 
-        if serializer.instance:
-            try:
-                diff = serializers.get_diff_data(serializer)
-                serializer.save()
+        try:
+            diff = serializers.get_diff_data(serializer)
+            data.instance = serializer.save()
+            data.serializer = serializer
+            row.diff = diff
+
+            if serializer.instance:
                 row.status = RowStatus.update
-                row.diff = diff
-            except ValidationError as ex:
-                errors = get_errors(ex)
-                row.set_errors(errors)
-
-            data.processed = True
-
-        else:
-            try:
-                diff = serializers.get_diff_data(serializer)
-                data.instance = serializer.save()
+            else:
                 row.status = RowStatus.new
-                row.diff = diff
                 self.cache_instance(context, data.instance)
-            except ValidationError as ex:
-                errors = get_errors(ex)
-                row.set_errors(errors)
 
-            data.processed = True
+        except ValidationError as ex:
+            errors = get_errors(ex)
+            row.set_errors(errors)
+
+        data.processed = True
+
+    def validate_row_post_save(self, row, data):
+        if not data.processed:
+            return
+
+        if row.status not in (RowStatus.new, RowStatus.update):
+            return
+
+        validator = PostSaveValidator(
+            data=data.instance, row=row, serializer=data.serializer
+        )
+
+        if not validator.is_valid():
+            row.diff = None
+            row.set_errors(validator.errors)
 
     def cache_instance(self, context, instance):
         new_object_cache = context["model_contexts"][self.model]["new_objects"]

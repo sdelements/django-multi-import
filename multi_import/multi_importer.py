@@ -87,20 +87,35 @@ class MultiImporter(object):
 
         bound_importers = self._transform_multi_input(data)
 
+        read_datasets = []
+
         for importer, datasets in bound_importers:
             serializer_context = importer.get_import_serializer_context(context)
 
-            read_datasets = [
-                (filename, importer.read_rows(dataset))
-                for filename, dataset in datasets
-            ]
+            read_datasets.extend(
+                [
+                    (
+                        importer,
+                        importer.read_rows(dataset),
+                        filename,
+                        serializer_context,
+                    )
+                    for filename, dataset in datasets
+                ]
+            )
 
-            for _filename, rows in read_datasets:
-                importer.load_instances(rows, serializer_context)
+        for importer, rows, _filename, serializer_context in read_datasets:
+            importer.load_instances(rows, serializer_context)
 
-            for filename, rows in read_datasets:
-                result = importer.process_rows(rows, serializer_context)
-                results.add_result(filename, result)
+        for importer, rows, _filename, serializer_context in read_datasets:
+            importer.process_rows(rows, serializer_context)
+
+        for importer, rows, _filename, _serializer_context in read_datasets:
+            importer.validate_rows_post_save(rows)
+
+        for importer, rows, filename, _serializer_context in read_datasets:
+            result = importer.transform_rows_to_result(rows)
+            results.add_result(filename, result)
 
         return results
 
