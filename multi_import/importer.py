@@ -120,10 +120,10 @@ class PostSaveValidator(Serializer):
         return data
 
     def create(self, validated_data):
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def update(self, instance, validated_data):
-        raise NotImplemented()
+        raise NotImplementedError()
 
 
 class Importer(object):
