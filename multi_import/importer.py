@@ -377,16 +377,17 @@ class Importer(object):
             return
 
         try:
+            creating = not data.instance
             diff = serializers.get_diff_data(serializer)
             data.instance = serializer.save()
             data.serializer = serializer
             row.diff = diff
 
-            if serializer.instance:
-                row.status = RowStatus.update
-            else:
+            if creating:
                 row.status = RowStatus.new
                 self.cache_instance(context, data.instance)
+            else:
+                row.status = RowStatus.update
 
         except ValidationError as ex:
             errors = get_errors(ex)
