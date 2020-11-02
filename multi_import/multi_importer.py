@@ -165,7 +165,7 @@ class MultiImporter(object):
         importer_keys = (
             importer.key
             for importer in self.importer_instances
-            if importer.id_column in dataset.headers
+            if dataset.headers and importer.id_column in dataset.headers
         )
         key = next(importer_keys, None)
         if not key:

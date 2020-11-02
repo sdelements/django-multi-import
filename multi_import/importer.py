@@ -185,9 +185,10 @@ class Importer(object):
 
         return ExportResult(
             dataset=dataset,
-            filename=self.get_export_filename(),
+            empty=empty,
             example_row=self.get_example_row(serializer),
             file_formats=self.file_formats,
+            filename=self.get_export_filename(),
         )
 
     def get_export_header(self, serializer):

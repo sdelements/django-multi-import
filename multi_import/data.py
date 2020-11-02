@@ -160,8 +160,9 @@ class MultiImportResult(object):
 
 
 class ExportResult(object):
-    def __init__(self, dataset, example_row, filename, file_formats):
+    def __init__(self, dataset, empty, example_row, filename, file_formats):
         self.dataset = dataset
+        self.empty = empty
         self.example_row = example_row
         self.filename = filename
         self.file_formats = file_formats
@@ -169,7 +170,7 @@ class ExportResult(object):
     def get_file(self, file_format=None):
         format = self._get_format(file_format)
         dataset = self.dataset
-        if format.empty_file_requires_example_row:
+        if self.empty and format.empty_file_requires_example_row:
             dataset = copy(dataset)
             dataset.append(self.example_row)
         return format.write(dataset)
