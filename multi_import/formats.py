@@ -148,6 +148,12 @@ class YamlFormat(TabLibFileFormat):
             dataset._package(ordered=False), default_flow_style=False
         )
 
+    def detect(self, file_handler, file_contents):
+        try:
+            return super(YamlFormat, self).detect(file_handler, file_contents)
+        except _yaml.yaml.error.YAMLError:
+            raise InvalidFileError(_(u"Invalid YAML File."))
+
 
 class TxtFormat(FileFormat):
     title = "txt"
