@@ -65,7 +65,9 @@ class DataReader(object):
 
     def has_values(self, row_data):
         return any(
-            value for value in row_data.values() if value and not value.isspace()
+            value
+            for value in row_data.values()
+            if value and (not isinstance(value, text_type) or not value.isspace())
         )
 
     def read_dataset_rows(self, dataset):
