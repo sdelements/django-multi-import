@@ -133,7 +133,11 @@ class JsonFormat(TabLibFileFormat):
 
     def export_set(self, dataset):
         return _json.json.dumps(
-            dataset.dict, default=_json.date_handler, sort_keys=True, indent=2
+            dataset.dict,
+            default=_json.date_handler,
+            ensure_ascii=False,
+            sort_keys=True,
+            indent=2,
         )
 
 
@@ -145,7 +149,9 @@ class YamlFormat(TabLibFileFormat):
 
     def export_set(self, dataset):
         return _yaml.yaml.safe_dump(
-            dataset._package(ordered=False), default_flow_style=False
+            dataset._package(ordered=False),
+            allow_unicode=True,
+            default_flow_style=False,
         )
 
     def detect(self, file_handler, file_contents):
