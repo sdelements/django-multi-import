@@ -37,7 +37,14 @@ def read(file_formats, file):
         except AttributeError:
             pass
 
-        except (tablib.InvalidDimensions, tablib.UnsupportedFormat):
-            raise InvalidFileError(_(u"Empty or Invalid File."))
+        except tablib.InvalidDimensions:
+            raise InvalidFileError(
+                _(
+                    u"File must not be empty, and all rows must have same columns/properties."
+                )
+            )
+
+        except tablib.UnsupportedFormat:
+            raise InvalidFileError(_(u"Invalid File."))
 
     raise InvalidFileError(_(u"Invalid File Type."))
