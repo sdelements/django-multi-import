@@ -27,6 +27,10 @@ class ObjectCache(object):
     def __len__(self):
         return self.object_count
 
+    @staticmethod
+    def _get_value_key(field, value):
+        return unicode(value).lower() if field.endswith("__iexact") else unicode(value)
+
     def add(self, obj):
         cached_obj = CachedObject(obj)
 
@@ -39,7 +43,7 @@ class ObjectCache(object):
         )
 
         for field, value in fields_to_cache:
-            self.objects[field][unicode(value)].add(cached_obj)
+            self.objects[field][self._get_value_key(field, value)].add(cached_obj)
 
         self.object_count += 1
 
@@ -53,7 +57,9 @@ class ObjectCache(object):
         if any(f not in self.objects or v is None for f, v in zipped_values):
             return default
 
-        result_sets = [self.objects[f][unicode(v)] for f, v in zipped_values]
+        result_sets = [
+            self.objects[f][self._get_value_key(f, v)] for f, v in zipped_values
+        ]
 
         results = [result.obj for result in set.intersection(*result_sets)]
 
