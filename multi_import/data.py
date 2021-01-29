@@ -29,9 +29,11 @@ class Row(object):
 
     def set_error(self, message):
         self.errors = {api_settings.NON_FIELD_ERRORS_KEY: [message]}
+        self.status = None
 
     def set_errors(self, errors):
         self.errors = errors
+        self.status = None
 
     def to_json(self):
         return {

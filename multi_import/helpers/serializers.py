@@ -127,34 +127,37 @@ def might_have_changes(serializer):
     return old_values != new_values
 
 
-def get_diff_data(serializer):
-    if not has_changes(serializer):
-        return None
-
+def get_diff_data(serializer, no_changes=None):
     data = {}
 
-    changed_fields = get_changed_fields(serializer)
-    orig = get_original_representation(serializer)
+    changed_fields = {}
+    orig = {}
 
-    for column_name in serializer.initial_data:
+    if not no_changes:
+        changed_fields = get_changed_fields(serializer)
+        orig = get_original_representation(serializer)
+
+    for column_name, value in serializer.initial_data.items():
         field = serializer.fields.get(column_name, None)
         if not field:
             continue
 
         data[column_name] = field_data = []
 
-        if column_name in orig:
-            field_data.append(fields.to_string_representation(field, orig[column_name]))
-        else:
-            field_data.append(u"")
-
         field_change = changed_fields.get(column_name, None)
 
-        if not field_change:
-            continue
+        if field_change:
+            if column_name in orig:
+                field_data.append(
+                    fields.to_string_representation(field, orig[column_name])
+                )
+            else:
+                field_data.append(u"")
 
-        new_value = field_change.new
+            new_value = field_change.new
 
-        field_data.append(fields.to_string_representation(field, new_value))
+            field_data.append(fields.to_string_representation(field, new_value))
+        else:
+            field_data.append(fields.to_string_representation(field, value))
 
     return data

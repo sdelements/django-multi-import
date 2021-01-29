@@ -15,9 +15,11 @@ def to_string_representation(field, value):
         if value is None:
             value = []
 
-        return unicode(list_separator).join(
-            [to_string_representation(field.child_relation, val) for val in value]
-        )
+        values = [to_string_representation(field.child_relation, val) for val in value]
+
+        # values.sort()
+
+        return unicode(list_separator).join(values)
 
     if value is None:
         value = ""
