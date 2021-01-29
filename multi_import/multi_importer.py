@@ -104,14 +104,23 @@ class MultiImporter(object):
                 ]
             )
 
+        max_steps = max(
+            len(importer.get_serializer_classes())
+            for importer, _rows, _filename, serializer_context in read_datasets
+        )
+
         for importer, rows, _filename, serializer_context in read_datasets:
             importer.load_instances(rows, serializer_context)
 
-        for importer, rows, _filename, serializer_context in read_datasets:
-            importer.process_rows(rows, serializer_context)
+        for step in range(max_steps):
+            for importer, rows, _filename, serializer_context in read_datasets:
+                importer.process_rows(rows, serializer_context, step)
 
         for importer, rows, _filename, _serializer_context in read_datasets:
             importer.validate_rows_post_save(rows)
+
+        for importer, rows, _filename, _serializer_context in read_datasets:
+            importer.process_diffs(rows)
 
         for importer, rows, filename, _serializer_context in read_datasets:
             result = importer.transform_rows_to_result(rows)

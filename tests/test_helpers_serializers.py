@@ -152,7 +152,9 @@ class SerializerHelperTests(TestCase):
 
         diff = serializers.get_diff_data(serializer)
 
-        self.assertEqual(diff, None)
+        self.assertEqual(
+            diff, {"first_name": ["Justin"], "last_name": ["Trudeau"], "partner": [""]}
+        )
 
     def test_get_diff_data_for_exisiting_object_with_changes(self):
         justin = Person(first_name="Justin", last_name="Trudeau")
