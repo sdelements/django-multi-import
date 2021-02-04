@@ -308,6 +308,7 @@ class Importer(object):
 
     def load_instance(self, row, data, context):
         cached_query = context["cached_query"]
+        instance = None
         try:
             lookup_data = self.get_lookup_data(row)
             instance = self.lookup_model_object(cached_query, lookup_data)
