@@ -11,6 +11,7 @@ from multi_import.helpers import strings
 
 class FileFormat(object):
     title = None
+    read_only = False
 
     @property
     def key(self):
@@ -100,9 +101,7 @@ class TabLibFileFormat(FileFormat):
 
 class CsvFormat(TabLibFileFormat):
     def __init__(self):
-        super(CsvFormat, self).__init__(
-            _csv, "application/csv", read_file_as_string=True
-        )
+        super(CsvFormat, self).__init__(_csv, "text/csv", read_file_as_string=True)
 
     @classmethod
     def ensure_unicode(cls, file_contents):
@@ -164,6 +163,7 @@ class YamlFormat(TabLibFileFormat):
 class TxtFormat(FileFormat):
     title = "txt"
     content_type = "text/plain"
+    read_only = True
 
     def detect(self, file_handler, file_contents):
         return False
@@ -201,17 +201,6 @@ json = JsonFormat()
 
 yaml = YamlFormat()
 
-all_formats = (xlsx, xls, csv, json, yaml, txt)
+all_formats = (csv, xlsx, xls, json, yaml, txt)
 
-supported_mimetypes = (
-    "text/plain",
-    "text/csv",
-    "application/vnd.ms-excel",
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "application/json",
-    "application/x-yaml",
-    # When Content-Type unspecified, defaults to this.
-    # https://sdelements.atlassian.net/browse/LIBR-355
-    # https://stackoverflow.com/questions/12061030/why-am-i-getting-mime-type-of-csv-file-as-application-octet-stream
-    "application/octet-stream",
-)
+default_formats = (csv, xlsx, json, yaml, txt)

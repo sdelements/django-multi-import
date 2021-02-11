@@ -9,7 +9,7 @@ from tablib import Dataset
 from multi_import.cache import CachedQuery, ObjectCache
 from multi_import.data import ImportResult, RowStatus, Row, ExportResult
 from multi_import.exceptions import InvalidFileError
-from multi_import.formats import all_formats
+from multi_import.formats import default_formats
 from multi_import.helpers import fields, files, serializers, strings
 from multi_import.helpers.exceptions import get_errors
 from multi_import.helpers.transactions import transaction
@@ -139,7 +139,7 @@ class Importer(object):
     model = None
     id_column = None
     lookup_fields = ("pk",)
-    file_formats = all_formats
+    file_formats = default_formats
     export_filename = None
 
     cached_query = CachedQuery
