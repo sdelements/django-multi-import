@@ -40,7 +40,8 @@ def read(file_formats, file):
         except tablib.InvalidDimensions:
             raise InvalidFileError(
                 _(
-                    u"File must not be empty, and all rows must have same columns/properties."
+                    u"File must not be empty, "
+                    u"and all rows must have same columns/properties."
                 )
             )
 
