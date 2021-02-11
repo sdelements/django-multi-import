@@ -136,7 +136,7 @@ class JsonFormat(TabLibFileFormat):
             dataset.dict,
             default=_json.date_handler,
             ensure_ascii=False,
-            sort_keys=True,
+            sort_keys=False,
             indent=2,
         )
 
@@ -152,6 +152,7 @@ class YamlFormat(TabLibFileFormat):
             dataset._package(ordered=False),
             allow_unicode=True,
             default_flow_style=False,
+            sort_keys=False,
         )
 
     def detect(self, file_handler, file_contents):
