@@ -1,5 +1,7 @@
 import chardet
 import six
+from yaml import CSafeDumper
+
 from django.utils.translation import ugettext_lazy as _
 from tablib.formats import _csv, _json, _xls, _xlsx, _yaml
 from tablib.core import Dataset
@@ -148,11 +150,14 @@ class YamlFormat(TabLibFileFormat):
         )
 
     def export_set(self, dataset):
-        return _yaml.yaml.safe_dump(
+        # By default safe_dump uses the pure Python SafeDumper, so we use 
+        # dump directly and pass in the C-based CSafeDumper.
+        return _yaml.yaml.dump(
             dataset._package(ordered=False),
             allow_unicode=True,
             default_flow_style=False,
             sort_keys=False,
+            Dumper=CSafeDumper
         )
 
     def detect(self, file_handler, file_contents):
