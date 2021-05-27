@@ -150,7 +150,7 @@ class YamlFormat(TabLibFileFormat):
         )
 
     def export_set(self, dataset):
-        # By default safe_dump uses the pure Python SafeDumper, so we use 
+        # By default safe_dump uses the pure Python SafeDumper, so we use
         # dump directly and pass in the C-based CSafeDumper.
         return _yaml.yaml.dump(
             dataset._package(ordered=False),
