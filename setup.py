@@ -17,7 +17,7 @@ install_requires = ["chardet", "tablib", "six"]
 
 setup(
     name="django-multi_import",
-    version="1.3.1",
+    version="1.3.3",
     author="Simon Bartlett",
     author_email="simon@securitycompass.com",
     packages=find_packages(),
