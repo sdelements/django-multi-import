@@ -216,6 +216,7 @@ supported_mimetypes = (
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     "application/json",
     "application/x-yaml",
+    "text/yaml",
     # When Content-Type unspecified, defaults to this.
     # https://sdelements.atlassian.net/browse/LIBR-355
     # https://stackoverflow.com/questions/12061030/why-am-i-getting-mime-type-of-csv-file-as-application-octet-stream
