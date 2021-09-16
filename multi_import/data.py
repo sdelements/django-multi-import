@@ -1,10 +1,12 @@
-from copy import copy
 import zipfile
+from copy import copy
 
 from django.http import HttpResponse
 from rest_framework.settings import api_settings
 from tablib.compat import BytesIO
+from tablib.core import Dataset
 
+from multi_import.formats import FileFormat
 from multi_import.helpers import files
 
 
@@ -162,20 +164,21 @@ class MultiImportResult(object):
 
 
 class ExportResult(object):
-    def __init__(self, dataset, empty, example_row, filename, file_formats):
+    def __init__(self, dataset, empty, example_row, filename, file_formats, id_column):
         self.dataset = dataset
         self.empty = empty
         self.example_row = example_row
         self.filename = filename
         self.file_formats = file_formats
+        self.id_column = id_column
 
-    def get_file(self, file_format=None):
+    def get_dataset(self, file_format=None) -> Dataset:
         format = self._get_format(file_format)
-        dataset = self.dataset
-        if self.empty and format.empty_file_requires_example_row:
-            dataset = copy(dataset)
-            dataset.append(self.example_row)
-        return format.write(dataset)
+        return self._get_dataset(format)
+
+    def get_file(self, file_format=None) -> BytesIO:
+        format = self._get_format(file_format)
+        return format.write(self._get_dataset(format))
 
     def get_http_response(self, file_format=None, filename=None):
         format = self._get_format(file_format)
@@ -191,34 +194,48 @@ class ExportResult(object):
     def _get_format(self, file_format):
         return files.find_format(self.file_formats, file_format)
 
+    def _get_dataset(self, format) -> Dataset:
+        dataset = self.dataset
+        if self.empty and format.empty_file_requires_example_row:
+            dataset = copy(dataset)
+            dataset.append(self.example_row)
+        return dataset
+
 
 class MultiExportResult(object):
+    """
+    A collection of ExportResults
+    """
     def __init__(self, filename, file_formats, results):
         self.file_formats = file_formats
         self.filename = filename
         self.results = results
 
-    def get_file(self, file_format=None):
+    def get_file(self, file_format: FileFormat=None, export_items_as_individual_files: bool=False) -> BytesIO:
         format = self._get_format(file_format)
 
-        if len(self.results) == 1:
+        if self._is_single_content_type_export() and not export_items_as_individual_files:
             return self.results[0].get_file(format)
 
         file = BytesIO()
+
         with zipfile.ZipFile(file, "w") as zf:
             for result in self.results:
-                f = result.get_file(format)
-                fname = "{0}.{1}".format(result.filename, format.extension)
-                zf.writestr(fname, f.getvalue())
+                if export_items_as_individual_files:
+                    self._write_tree_export(format, result, zf)
+                else:
+                    self._write_tabular_export(format, result, zf)
+
         return file
 
-    def get_http_response(self, file_format=None, filename=None):
+    def get_http_response(self, file_format: FileFormat=None, filename: str=None, export_items_as_individual_files: bool=False) -> HttpResponse:
+        """Return an HTTP response containing the ExportResults as a zip file"""
         format = self._get_format(file_format)
 
-        if len(self.results) == 1:
+        if self._is_single_content_type_export() and not export_items_as_individual_files:
             return self.results[0].get_http_response(format, filename)
 
-        file = self.get_file(format)
+        file = self.get_file(format, export_items_as_individual_files)
         content_type = "application-x-zip-compressed"
         filename = "{0}.zip".format(filename or self.filename)
 
@@ -227,5 +244,33 @@ class MultiExportResult(object):
         response["Content-Disposition"] = header
         return response
 
-    def _get_format(self, file_format):
+    def _write_tree_export(self, format: FileFormat, result: ExportResult, file: zipfile.ZipFile) -> None:
+        """
+        Write exported content items in individual files with the items'
+        id_column value as the filenames.
+        """
+        dataset = result.get_dataset(format)
+
+        for row in dataset:
+            directory_name = result.filename
+            new_ds = Dataset(headers=dataset.headers)
+            new_ds.append(row)
+            file_contents = format.write(new_ds)
+            item_id = new_ds.dict[0][result.id_column]
+            file_name = f"{item_id}.{format.extension}"
+            file.writestr(f"{directory_name}/{file_name}", file_contents.getvalue())
+
+    def _write_tabular_export(self, format: FileFormat, result: ExportResult, file: zipfile.ZipFile) -> None:
+        """
+        Write exported content items in the same file with the content item
+        type as the filename.
+        """
+        file_contents = result.get_file(format)
+        file_name = "{0}.{1}".format(result.filename, format.extension)
+        file.writestr(file_name, file_contents.getvalue())
+
+    def _get_format(self, file_format: FileFormat) -> FileFormat:
         return files.find_format(self.file_formats, file_format)
+
+    def _is_single_content_type_export(self) -> bool:
+        return len(self.results) == 1
