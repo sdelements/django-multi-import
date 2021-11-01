@@ -209,6 +209,7 @@ class Importer(object):
             example_row=self.get_example_row(serializers),
             file_formats=self.file_formats,
             filename=self.get_export_filename(),
+            id_column=self.id_column,
         )
 
     def get_export_header(self, serializers):

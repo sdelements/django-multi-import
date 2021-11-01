@@ -1,11 +1,11 @@
 import chardet
 import six
-from yaml import CSafeDumper
-
 from django.utils.translation import ugettext_lazy as _
-from tablib.formats import _csv, _json, _xls, _xlsx, _yaml
-from tablib.core import Dataset
 from tablib.compat import BytesIO, StringIO
+from tablib.core import Dataset
+from tablib.formats import _csv, _json, _xls, _xlsx, _yaml
+from typing_extensions import OrderedDict
+from yaml import CSafeDumper
 
 from multi_import.exceptions import InvalidFileError
 from multi_import.helpers import strings
@@ -91,8 +91,12 @@ class TabLibFileFormat(FileFormat):
     def export_set(self, dataset):
         return self.format.export_set(dataset)
 
-    def write(self, dataset):
+    def write(self, dataset: Dataset) -> BytesIO:
+        """Return a BytesIO stream representing a set of items."""
         data = self.export_set(dataset)
+        return self._write_to_bytes(data)
+
+    def _write_to_bytes(self, data) -> BytesIO:
         f = BytesIO()
         if isinstance(data, six.text_type):
             data = data.encode("utf-8")
