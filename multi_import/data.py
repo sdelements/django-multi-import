@@ -18,7 +18,7 @@ class RowStatus(object):
 
 class ExportMode(object):
     GROUPED = "grouped"
-    INDIVIDUAL = "individual"
+    ITEMIZED = "itemized"
 
 
 class Row(object):
@@ -229,7 +229,7 @@ class MultiExportResult(object):
 
         with zipfile.ZipFile(file, "w") as zf:
             for result in self.results:
-                if export_mode == ExportMode.INDIVIDUAL:
+                if export_mode == ExportMode.ITEMIZED:
                     self._write_tree_export(format, result, zf)
                 else:
                     self._write_tabular_export(format, result, zf)
