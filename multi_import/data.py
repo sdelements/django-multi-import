@@ -16,6 +16,11 @@ class RowStatus(object):
     new = 3
 
 
+class ExportMode(object):
+    GROUPED = "grouped"
+    ITEMIZED = "itemized"
+
+
 class Row(object):
     """
     Represents a row in an imported Dataset
@@ -211,31 +216,37 @@ class MultiExportResult(object):
         self.filename = filename
         self.results = results
 
-    def get_file(self, file_format: FileFormat=None, export_items_as_individual_files: bool=False) -> BytesIO:
+    def get_file(self, file_format: FileFormat=None, export_mode: str=None)-> BytesIO:
         format = self._get_format(file_format)
 
-        if self._is_single_content_type_export() and not export_items_as_individual_files:
+        if not export_mode:
+            export_mode = ExportMode.GROUPED
+
+        if self._is_single_content_type_export() and export_mode == ExportMode.GROUPED:
             return self.results[0].get_file(format)
 
         file = BytesIO()
 
         with zipfile.ZipFile(file, "w") as zf:
             for result in self.results:
-                if export_items_as_individual_files:
+                if export_mode == ExportMode.ITEMIZED:
                     self._write_tree_export(format, result, zf)
                 else:
                     self._write_tabular_export(format, result, zf)
 
         return file
 
-    def get_http_response(self, file_format: FileFormat=None, filename: str=None, export_items_as_individual_files: bool=False) -> HttpResponse:
+    def get_http_response(self, file_format: FileFormat=None, filename: str=None, export_mode: str=None) -> HttpResponse:
         """Return an HTTP response containing the ExportResults as a zip file"""
         format = self._get_format(file_format)
 
-        if self._is_single_content_type_export() and not export_items_as_individual_files:
+        if not export_mode:
+            export_mode = ExportMode.GROUPED
+
+        if self._is_single_content_type_export() and export_mode == ExportMode.GROUPED:
             return self.results[0].get_http_response(format, filename)
 
-        file = self.get_file(format, export_items_as_individual_files)
+        file = self.get_file(format, export_mode)
         content_type = "application-x-zip-compressed"
         filename = "{0}.zip".format(filename or self.filename)
 
