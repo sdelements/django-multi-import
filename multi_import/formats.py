@@ -5,7 +5,10 @@ from tablib.compat import BytesIO, StringIO
 from tablib.core import Dataset
 from tablib.formats import _csv, _json, _xls, _xlsx, _yaml
 from typing_extensions import OrderedDict
-from yaml import CSafeDumper
+try:
+    from yaml import CSafeDumper
+except:
+    CSafeDumper = None
 
 from multi_import.exceptions import InvalidFileError
 from multi_import.helpers import strings
@@ -154,15 +157,23 @@ class YamlFormat(TabLibFileFormat):
         )
 
     def export_set(self, dataset):
-        # By default safe_dump uses the pure Python SafeDumper, so we use
-        # dump directly and pass in the C-based CSafeDumper.
-        return _yaml.yaml.dump(
-            dataset._package(ordered=False),
-            allow_unicode=True,
-            default_flow_style=False,
-            sort_keys=False,
-            Dumper=CSafeDumper
-        )
+        # By default use the C-based CSafeDumper,
+        # otherwise fallback to pure Python SafeDumper.
+        if CSafeDumper:
+            return _yaml.yaml.dump(
+                dataset._package(ordered=False),
+                allow_unicode=True,
+                default_flow_style=False,
+                sort_keys=False,
+                Dumper=CSafeDumper
+            )
+        else:
+            return _yaml.yaml.safe_dump(
+                dataset._package(ordered=False),
+                allow_unicode=True,
+                default_flow_style=False,
+                sort_keys=False
+            )
 
     def detect(self, file_handler, file_contents):
         try:
