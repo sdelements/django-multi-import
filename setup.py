@@ -17,7 +17,7 @@ install_requires = ["chardet", "tablib", "six"]
 
 setup(
     name="django-multi_import",
-    version="1.4.0",
+    version="1.4.2",
     author="Simon Bartlett",
     author_email="simon@securitycompass.com",
     packages=find_packages(),
@@ -36,6 +36,7 @@ setup(
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
         "Framework :: Django",
         "Development Status :: 4 - Beta",
         "Operating System :: OS Independent",
