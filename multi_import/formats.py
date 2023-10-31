@@ -2,7 +2,7 @@ import chardet
 import six
 from django.utils.translation import ugettext_lazy as _
 from tablib.compat import BytesIO, StringIO
-from tablib.core import Dataset
+from tablib.core import Dataset, InvalidDimensions
 from tablib.formats import _csv, _json, _xls, _xlsx, _yaml
 
 try:
@@ -129,6 +129,15 @@ class CsvFormat(TabLibFileFormat):
         file_object = self.ensure_unicode(file_object)
         file_object = strings.normalize_string(file_object)
         return file_object
+
+    def detect(self, file_handler, file_contents):
+        file_object = self.get_file_object(file_handler, file_contents)
+        try:
+            Dataset().load(file_object, "csv")
+            return True
+        except InvalidDimensions:
+            pass
+        return False
 
 
 class JsonFormat(TabLibFileFormat):
