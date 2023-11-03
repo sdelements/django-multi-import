@@ -17,7 +17,7 @@ class FileDetect(TestCase):
 class CSVFileDetect(FileDetect):
     def test_json_file(self):
         file, decoded_contents = self.get_file_and_decoded_contents(
-            "tests/import_files/test_file.json"
+            "tests/test_import_files/test_file.json"
         )
 
         file_detection_result = CsvFormat().detect(
@@ -28,7 +28,7 @@ class CSVFileDetect(FileDetect):
 
     def test_yaml_file(self):
         file, decoded_contents = self.get_file_and_decoded_contents(
-            "tests/import_files/test_file.yaml"
+            "tests/test_import_files/test_file.yaml"
         )
 
         file_detection_result = CsvFormat().detect(
@@ -39,7 +39,7 @@ class CSVFileDetect(FileDetect):
 
     def test_csv_file(self):
         file, decoded_contents = self.get_file_and_decoded_contents(
-            "tests/import_files/test_file.csv"
+            "tests/test_import_files/test_file.csv"
         )
 
         file_detection_result = CsvFormat().detect(
@@ -50,7 +50,7 @@ class CSVFileDetect(FileDetect):
 
     def test_xlsx_file(self):
         file, decoded_contents = self.get_file_and_decoded_contents(
-            "tests/import_files/test_file.xlsx"
+            "tests/test_import_files/test_file.xlsx"
         )
 
         file_detection_result = CsvFormat().detect(
