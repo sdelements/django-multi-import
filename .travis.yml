@@ -1,40 +1,19 @@
 sudo: false
-
-dist: xenial
-
 language: python
-
-python:
-  - 3.5
-  - 3.6
-  - 3.7
-  - 3.8
-
-env:
-  global:
-    - DEFAULT_PYTHON=3.6
-    - DEFAULT_DJANGO=1.11.27
-  matrix:
-    - DJANGO=1.11.27
-
-matrix:
+jobs:
   include:
-    - python: 3.6
-      env: LINT=1
-
-before_install:
-  - if [ -z "$DJANGO" ]; then export DJANGO=$DEFAULT_DJANGO; fi
-  - if [[ -z "$LINT" && $TRAVIS_PYTHON_VERSION == $DEFAULT_PYTHON && $DJANGO == $DEFAULT_DJANGO ]]; then export COVERAGE=1; fi
-
+      - if: tag IS blank
+        python: "3.6"
+        env: DJANGO=3.0
+      - if: tag IS blank
+        python: "3.8"
+        env: DJANGO=3.0
 install:
-  - pip install -q Django==$DJANGO
+  - pip install -q Django~=$DJANGO python-coveralls
   - make init
-  - if [[ $COVERAGE ]]; then pip install python-coveralls; fi
-
 script:
-  - if [[ $LINT ]]; then make lint; fi
-  - if [[ $COVERAGE ]]; then make coverage; fi
-  - if [[ -z "$LINT" && -z "$COVERAGE" ]]; then make test; fi
-
+  - make lint
+  - make coverage
+  - make test
 after_success:
-  - if [[ $COVERAGE ]]; then coveralls; fi
+  - coveralls
