@@ -4,7 +4,7 @@ from django.utils.translation import ugettext_lazy as _
 from tablib.compat import BytesIO, StringIO
 from tablib.core import Dataset, InvalidDimensions, UnsupportedFormat
 from tablib.formats import _csv, _json, _xls, _xlsx, _yaml
-from csv import Error as _csvError
+from csv import Error as NullError
 
 try:
     from yaml import CSafeDumper
@@ -152,7 +152,7 @@ class CsvFormat(TabLibFileFormat):
             InvalidDimensions,
             UnsupportedFormat,
             AttributeError,
-            _csvError
+            NullError
         ):
             pass
         return False
