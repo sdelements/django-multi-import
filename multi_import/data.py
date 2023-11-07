@@ -216,7 +216,7 @@ class MultiExportResult(object):
         self.filename = filename
         self.results = results
 
-    def get_file(self, file_format: FileFormat=None, export_mode: str=None)-> BytesIO:
+    def get_file(self, file_format: FileFormat = None, export_mode: str = None) -> BytesIO:
         format = self._get_format(file_format)
 
         if not export_mode:
@@ -236,7 +236,10 @@ class MultiExportResult(object):
 
         return file
 
-    def get_http_response(self, file_format: FileFormat=None, filename: str=None, export_mode: str=None) -> HttpResponse:
+    def get_http_response(self,
+                          file_format: FileFormat = None,
+                          filename: str = None,
+                          export_mode: str = None) -> HttpResponse:
         """Return an HTTP response containing the ExportResults as a zip file"""
         format = self._get_format(file_format)
 

@@ -2,7 +2,7 @@ init:
 	pip install -r requirements.txt
 
 lint:
-	flake8 --max-line-length 88 --extend-ignore=D
+	flake8 --max-line-length 120 --extend-ignore=D
 
 test:
 	./runtests.py

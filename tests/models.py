@@ -8,7 +8,7 @@ class Chapter(models.Model):
 
 class Book(models.Model):
     name = models.CharField(max_length=100)
-    author = models.ForeignKey("Person")
+    author = models.ForeignKey("Person", on_delete=models.CASCADE)
     chapters = models.ManyToManyField("Chapter")
 
 
@@ -16,7 +16,7 @@ class Person(models.Model):
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
 
-    partner = models.ForeignKey("Person", null=True, related_name="person_partner")
+    partner = models.ForeignKey("Person", null=True, related_name="person_partner", on_delete=models.CASCADE)
 
     children = models.ManyToManyField("Person", related_name="person_children")
 

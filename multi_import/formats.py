@@ -4,10 +4,10 @@ from django.utils.translation import ugettext_lazy as _
 from tablib.compat import BytesIO, StringIO
 from tablib.core import Dataset
 from tablib.formats import _csv, _json, _xls, _xlsx, _yaml
-from typing_extensions import OrderedDict
+
 try:
     from yaml import CSafeDumper
-except:
+except (ModuleNotFoundError, ImportError):
     CSafeDumper = None
 
 from multi_import.exceptions import InvalidFileError
