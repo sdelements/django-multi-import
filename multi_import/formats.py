@@ -2,8 +2,9 @@ import chardet
 import six
 from django.utils.translation import ugettext_lazy as _
 from tablib.compat import BytesIO, StringIO
-from tablib.core import Dataset
+from tablib.core import Dataset, InvalidDimensions, UnsupportedFormat
 from tablib.formats import _csv, _json, _xls, _xlsx, _yaml
+from csv import Error as NullError
 
 try:
     from yaml import CSafeDumper
@@ -129,6 +130,32 @@ class CsvFormat(TabLibFileFormat):
         file_object = self.ensure_unicode(file_object)
         file_object = strings.normalize_string(file_object)
         return file_object
+
+    def detect(self, file_handler, file_contents):
+        if self.is_valid_csv(file_handler, file_contents):
+            # Handles row validations
+            return super(CsvFormat, self).detect(
+                file_handler,
+                file_contents
+            )
+        return False
+
+    def is_valid_csv(self, file_handler, file_contents):
+        file_object = self.get_file_object(file_handler, file_contents)
+        try:
+            # Would error out if invalid csv file
+            Dataset().load(file_object, "csv")
+            # Note: dataset is valid for test_file.yaml in the tests directory
+            # Would need suggestions on how to better handle this
+            return not YamlFormat().detect(file_handler, file_contents)
+        except (
+            InvalidDimensions,
+            UnsupportedFormat,
+            AttributeError,
+            NullError
+        ):
+            pass
+        return False
 
 
 class JsonFormat(TabLibFileFormat):
