@@ -1,4 +1,4 @@
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from multi_import.data import MultiExportResult, MultiImportResult
 from multi_import.exceptions import InvalidDatasetError, InvalidFileError
