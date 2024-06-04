@@ -1,6 +1,6 @@
 Django==3.2.25                          # BSD
 djangorestframework==3.11.2             # BSD
-six==1.12.0                             # MIT
+six==1.16.0                             # MIT
 chardet==3.0.4                          # LGPL
 tablib==0.12.1                          # MIT
 
