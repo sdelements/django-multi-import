@@ -1,6 +1,5 @@
 from collections import defaultdict
 
-import six
 from django.core.exceptions import MultipleObjectsReturned
 
 
@@ -47,7 +46,7 @@ class ObjectCache(object):
         self.object_count += 1
 
     def get(self, field, value, default=None):
-        if isinstance(field, six.string_types):
+        if isinstance(field, str):
             field = (field,)
             value = (value,)
 
@@ -67,7 +66,7 @@ class ObjectCache(object):
     def find(self, value, fields=None):
         fields = fields or self.lookup_fields
         single_fields = (
-            field for field in fields if isinstance(field, six.string_types)
+            field for field in fields if isinstance(field, str)
         )
         for field in single_fields:
             result = self.get(field, value)
@@ -78,7 +77,7 @@ class ObjectCache(object):
     def match(self, data, fields=None):
         fields = fields or self.lookup_fields
         for field in fields:
-            if isinstance(field, six.string_types):
+            if isinstance(field, str):
                 value = data.get(field, None)
             else:
                 value = [data.get(f) for f in field]
@@ -97,7 +96,7 @@ class ObjectCache(object):
         return set(
             item
             for sublist in (
-                (item,) if isinstance(item, six.string_types) else item
+                (item,) if isinstance(item, str) else item
                 for item in fields
             )
             for item in sublist

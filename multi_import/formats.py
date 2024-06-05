@@ -2,7 +2,6 @@ from csv import Error as NullError
 from io import BytesIO, StringIO
 
 import chardet
-import six
 from django.utils.translation import gettext_lazy as _
 from tablib.core import Dataset, InvalidDimensions, UnsupportedFormat
 from tablib.formats import _csv, _json, _xls, _xlsx, _yaml
@@ -100,7 +99,7 @@ class TabLibFileFormat(FileFormat):
 
     def _write_to_bytes(self, data) -> BytesIO:
         f = BytesIO()
-        if isinstance(data, six.text_type):
+        if isinstance(data, str):
             data = data.encode("utf-8")
         f.write(data)
         return f
@@ -114,7 +113,7 @@ class CsvFormat(TabLibFileFormat):
 
     @classmethod
     def ensure_unicode(cls, file_contents):
-        if isinstance(file_contents, six.text_type):
+        if isinstance(file_contents, str):
             return file_contents
         charset = chardet.detect(file_contents)
         encoding = charset["encoding"]

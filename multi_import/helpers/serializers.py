@@ -1,6 +1,5 @@
 from collections import namedtuple
 
-import six
 from rest_framework import relations
 
 from multi_import.helpers import fields, strings
@@ -82,7 +81,7 @@ def get_changed_fields(serializer, validated_data=None):
         new_value = field.to_representation(value)
 
         # TODO: Move this to .to_representation()?
-        if isinstance(old_value, six.string_types):
+        if isinstance(old_value, str):
             old_value = strings.normalize_string(old_value)
 
         if old_value != new_value:

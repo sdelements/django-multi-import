@@ -3,7 +3,6 @@ from itertools import chain
 from django.core.exceptions import MultipleObjectsReturned, ValidationError
 from django.utils.translation import gettext_lazy as _
 from rest_framework.serializers import Serializer
-from six import string_types, text_type
 from tablib import Dataset
 
 from multi_import.cache import CachedQuery, ObjectCache
@@ -69,7 +68,7 @@ class DataReader(object):
         return any(
             value
             for value in row_data.values()
-            if value and (not isinstance(value, text_type) or not value.isspace())
+            if value and (not isinstance(value, str) or not value.isspace())
         )
 
     def read_dataset_rows(self, dataset):
@@ -99,8 +98,8 @@ class DataReader(object):
             if isinstance(value, float) and value.is_integer():
                 value = int(value)
 
-            if not isinstance(value, string_types):
-                value = text_type(value)
+            if not isinstance(value, str):
+                value = str(value)
 
             data[key] = strings.normalize_string(value)
         return data
