@@ -9,4 +9,6 @@ INSTALLED_APPS = ("multi_import", "tests",)
 
 SITE_ID = 1
 
+DEFAULT_AUTO_FIELD='django.db.models.AutoField'
+
 SECRET_KEY = "foobar"  # noqa

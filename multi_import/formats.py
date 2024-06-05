@@ -6,6 +6,7 @@ import six
 from django.utils.translation import gettext_lazy as _
 from tablib.core import Dataset, InvalidDimensions, UnsupportedFormat
 from tablib.formats import _csv, _json, _xls, _xlsx, _yaml
+from tablib import detect_format
 from yaml import CSafeDumper
 
 from multi_import.exceptions import InvalidFileError
@@ -63,7 +64,7 @@ class TabLibFileFormat(FileFormat):
     def detect(self, file_handler, file_contents):
         file_object = self.get_file_object(file_handler, file_contents)
         try:
-            return self.format.detect(file_object)
+            return detect_format(file_object)
         except AttributeError:
             pass
         return False
