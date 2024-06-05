@@ -9,7 +9,7 @@ from multi_import.helpers import files
 class FileHelperTests(TestCase):
     def test_decode_file_when_reading_utf_8(self):
         file = BytesIO()
-        file.write(u"UTF-8 character: Đà".encode("utf-8"))
+        file.write("UTF-8 character: Đà".encode("utf-8"))
 
         file.seek(0)
         file_contents = file.read()
@@ -23,7 +23,7 @@ class FileHelperTests(TestCase):
 
     def test_decode_file_when_reading_utf_16(self):
         file = BytesIO()
-        file.write(u"UTF-16 character: $".encode("utf-16"))
+        file.write("UTF-16 character: $".encode("utf-16"))
 
         file.seek(0)
         file_contents = file.read()
@@ -37,7 +37,7 @@ class FileHelperTests(TestCase):
 
     def test_decode_file_when_reading_iso_8859_1(self):
         file = BytesIO()
-        file.write(u"Latin-1 character: ¥".encode("ISO-8859-1"))
+        file.write("Latin-1 character: ¥".encode("ISO-8859-1"))
 
         file.seek(0)
         file_contents = file.read()

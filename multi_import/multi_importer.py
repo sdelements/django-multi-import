@@ -19,8 +19,8 @@ class MultiImporter(object):
     export_filename = "export"
 
     error_messages = {
-        "invalid_key": _(u"Columns should match those in the import template."),
-        "invalid_export_keys": _(u"Invalid keys {0} for exporting"),
+        "invalid_key": _("Columns should match those in the import template."),
+        "invalid_export_keys": _("Invalid keys {0} for exporting"),
     }
 
     def __init__(self):

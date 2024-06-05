@@ -7,7 +7,7 @@ from six import string_types, text_type
 from tablib import Dataset
 
 from multi_import.cache import CachedQuery, ObjectCache
-from multi_import.data import ImportResult, RowStatus, Row, ExportResult
+from multi_import.data import ExportResult, ImportResult, Row, RowStatus
 from multi_import.exceptions import InvalidFileError
 from multi_import.formats import all_formats
 from multi_import.helpers import fields, files, serializers, strings
@@ -148,9 +148,9 @@ class Importer(object):
     serializer_classes = None
 
     error_messages = {
-        "cannot_update": _(u"Can not update this item."),
-        "multiple_matches": _(u"Multiple database entries match."),
-        "multiple_updates": _(u"This item is being updated more than once."),
+        "cannot_update": _("Can not update this item."),
+        "multiple_matches": _("Multiple database entries match."),
+        "multiple_updates": _("This item is being updated more than once."),
     }
 
     def __init__(self):

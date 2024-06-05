@@ -35,4 +35,3 @@ repos:
   - id: flake8
     additional_dependencies: [flake8-typing-imports==1.10.0]
     exclude: ^tests
-

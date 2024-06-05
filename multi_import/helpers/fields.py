@@ -1,8 +1,6 @@
 from rest_framework import relations
-from tablib.compat import unicode
 
 from multi_import.helpers import strings
-
 
 list_separator = ";"
 
@@ -15,14 +13,14 @@ def to_string_representation(field, value):
         if value is None:
             value = []
 
-        return unicode(list_separator).join(
+        return str(list_separator).join(
             [to_string_representation(field.child_relation, val) for val in value]
         )
 
     if value is None:
         value = ""
 
-    return strings.normalize_string(unicode(value))
+    return strings.normalize_string(str(value))
 
 
 def from_string_representation(field, value):

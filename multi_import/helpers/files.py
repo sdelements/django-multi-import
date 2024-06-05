@@ -21,7 +21,7 @@ def decode_contents(file_contents):
         except UnicodeDecodeError:
             pass
 
-    raise InvalidFileError(_(u"File encoding not identified."))
+    raise InvalidFileError(_("File encoding not identified."))
 
 
 def read(file_formats, file):
@@ -40,12 +40,12 @@ def read(file_formats, file):
         except tablib.InvalidDimensions:
             raise InvalidFileError(
                 _(
-                    u"File must not be empty, "
-                    u"and all rows must have same columns/properties."
+                    "File must not be empty, "
+                    "and all rows must have same columns/properties."
                 )
             )
 
         except tablib.UnsupportedFormat:
-            raise InvalidFileError(_(u"Invalid File."))
+            raise InvalidFileError(_("Invalid File."))
 
-    raise InvalidFileError(_(u"Invalid File Type."))
+    raise InvalidFileError(_("Invalid File Type."))

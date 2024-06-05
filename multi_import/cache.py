@@ -1,8 +1,7 @@
 from collections import defaultdict
 
-from django.core.exceptions import MultipleObjectsReturned
 import six
-from tablib.compat import unicode
+from django.core.exceptions import MultipleObjectsReturned
 
 
 class CachedObject(object):
@@ -29,7 +28,7 @@ class ObjectCache(object):
 
     @staticmethod
     def _get_value_key(field, value):
-        return unicode(value).lower() if field.endswith("__iexact") else unicode(value)
+        return str(value).lower() if field.endswith("__iexact") else str(value)
 
     def add(self, obj):
         cached_obj = CachedObject(obj)

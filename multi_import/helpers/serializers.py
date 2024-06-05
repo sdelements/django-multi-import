@@ -1,11 +1,9 @@
 from collections import namedtuple
 
-from rest_framework import relations
 import six
-from tablib.compat import unicode
+from rest_framework import relations
 
 from multi_import.helpers import fields, strings
-
 
 FieldChange = namedtuple("FieldChange", ["field", "old", "new", "value"])
 
@@ -73,7 +71,7 @@ def get_changed_fields(serializer, validated_data=None):
         if field.read_only or field.write_only:
             continue
 
-        source = unicode(field.source)
+        source = str(field.source)
 
         if source not in validated_data:
             continue
@@ -152,7 +150,7 @@ def get_diff_data(serializer, no_changes=None):
                     fields.to_string_representation(field, orig[column_name])
                 )
             else:
-                field_data.append(u"")
+                field_data.append("")
 
             new_value = field_change.new
 

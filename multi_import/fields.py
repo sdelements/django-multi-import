@@ -1,18 +1,14 @@
-from django.core.exceptions import (
-    FieldError,
-    MultipleObjectsReturned,
-    ObjectDoesNotExist,
-    ValidationError,
-)
+from django.core.exceptions import (FieldError, MultipleObjectsReturned,
+                                    ObjectDoesNotExist, ValidationError)
 from django.utils.translation import gettext_lazy as _
 from rest_framework import relations
 
 
 class LookupRelatedField(relations.RelatedField):
     default_error_messages = {
-        "required": _(u"This field is required."),
-        "does_not_exist": _(u'No match found for: "{value}".'),
-        "multiple_matches": _(u"Multiple matches found for: {value}"),
+        "required": _("This field is required."),
+        "does_not_exist": _('No match found for: "{value}".'),
+        "multiple_matches": _("Multiple matches found for: {value}"),
     }
 
     def __init__(self, **kwargs):

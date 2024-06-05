@@ -1,5 +1,4 @@
 from django.core.exceptions import NON_FIELD_ERRORS, ValidationError
-
 from rest_framework.settings import api_settings
 
 
