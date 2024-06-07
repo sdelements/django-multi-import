@@ -5,8 +5,13 @@ MIDDLEWARE_CLASSES = (
     "django.middleware.csrf.CsrfViewMiddleware",
 )
 
-INSTALLED_APPS = ("tests",)
+INSTALLED_APPS = (
+    "multi_import",
+    "tests",
+)
 
 SITE_ID = 1
 
-SECRET_KEY = "this-is-just-for-tests-so-not-that-secret"  # noqa
+DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
+
+SECRET_KEY = "foobar"  # noqa

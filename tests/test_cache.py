@@ -1,7 +1,6 @@
 from django.test import TestCase
 
 from multi_import.cache import CachedObject, ObjectCache
-
 from tests.models import Book
 
 

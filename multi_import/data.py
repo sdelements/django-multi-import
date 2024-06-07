@@ -1,9 +1,9 @@
 import zipfile
 from copy import copy
+from io import BytesIO
 
 from django.http import HttpResponse
 from rest_framework.settings import api_settings
-from tablib.compat import BytesIO
 from tablib.core import Dataset
 
 from multi_import.formats import FileFormat
@@ -211,12 +211,15 @@ class MultiExportResult(object):
     """
     A collection of ExportResults
     """
+
     def __init__(self, filename, file_formats, results):
         self.file_formats = file_formats
         self.filename = filename
         self.results = results
 
-    def get_file(self, file_format: FileFormat = None, export_mode: str = None) -> BytesIO:
+    def get_file(
+        self, file_format: FileFormat = None, export_mode: str = None
+    ) -> BytesIO:
         format = self._get_format(file_format)
 
         if not export_mode:
@@ -236,10 +239,12 @@ class MultiExportResult(object):
 
         return file
 
-    def get_http_response(self,
-                          file_format: FileFormat = None,
-                          filename: str = None,
-                          export_mode: str = None) -> HttpResponse:
+    def get_http_response(
+        self,
+        file_format: FileFormat = None,
+        filename: str = None,
+        export_mode: str = None,
+    ) -> HttpResponse:
         """Return an HTTP response containing the ExportResults as a zip file"""
         format = self._get_format(file_format)
 
@@ -258,7 +263,9 @@ class MultiExportResult(object):
         response["Content-Disposition"] = header
         return response
 
-    def _write_tree_export(self, format: FileFormat, result: ExportResult, file: zipfile.ZipFile) -> None:
+    def _write_tree_export(
+        self, format: FileFormat, result: ExportResult, file: zipfile.ZipFile
+    ) -> None:
         """
         Write exported content items in individual files with the items'
         id_column value as the filenames.
@@ -274,7 +281,9 @@ class MultiExportResult(object):
             file_name = f"{item_id}.{format.extension}"
             file.writestr(f"{directory_name}/{file_name}", file_contents.getvalue())
 
-    def _write_tabular_export(self, format: FileFormat, result: ExportResult, file: zipfile.ZipFile) -> None:
+    def _write_tabular_export(
+        self, format: FileFormat, result: ExportResult, file: zipfile.ZipFile
+    ) -> None:
         """
         Write exported content items in the same file with the content item
         type as the filename.

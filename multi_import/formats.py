@@ -1,14 +1,15 @@
+from csv import Error as NullError
+from io import BytesIO, StringIO
+
 import chardet
-import six
-from django.utils.translation import ugettext_lazy as _
-from tablib.compat import BytesIO, StringIO
+from django.utils.translation import gettext_lazy as _
+from tablib import detect_format
 from tablib.core import Dataset, InvalidDimensions, UnsupportedFormat
 from tablib.formats import _csv, _json, _xls, _xlsx, _yaml
-from csv import Error as NullError
 
 try:
     from yaml import CSafeDumper
-except (ModuleNotFoundError, ImportError):
+except ImportError:
     CSafeDumper = None
 
 from multi_import.exceptions import InvalidFileError
@@ -66,7 +67,7 @@ class TabLibFileFormat(FileFormat):
     def detect(self, file_handler, file_contents):
         file_object = self.get_file_object(file_handler, file_contents)
         try:
-            return self.format.detect(file_object)
+            return detect_format(file_object)
         except AttributeError:
             pass
         return False
@@ -90,7 +91,7 @@ class TabLibFileFormat(FileFormat):
 
             return dataset
         except (AttributeError, KeyError):
-            raise InvalidFileError(_(u"Empty or Invalid File."))
+            raise InvalidFileError(_("Empty or Invalid File."))
 
     def export_set(self, dataset):
         return self.format.export_set(dataset)
@@ -102,7 +103,7 @@ class TabLibFileFormat(FileFormat):
 
     def _write_to_bytes(self, data) -> BytesIO:
         f = BytesIO()
-        if isinstance(data, six.text_type):
+        if isinstance(data, str):
             data = data.encode("utf-8")
         f.write(data)
         return f
@@ -116,7 +117,7 @@ class CsvFormat(TabLibFileFormat):
 
     @classmethod
     def ensure_unicode(cls, file_contents):
-        if isinstance(file_contents, six.text_type):
+        if isinstance(file_contents, str):
             return file_contents
         charset = chardet.detect(file_contents)
         encoding = charset["encoding"]
@@ -124,7 +125,7 @@ class CsvFormat(TabLibFileFormat):
         if encoding and encoding_confidence > 0.5:
             return file_contents.decode(encoding.lower()).encode("utf8")
         else:
-            raise InvalidFileError(_(u"Unknown file type."))
+            raise InvalidFileError(_("Unknown file type."))
 
     def pre_read(self, file_object):
         file_object = self.ensure_unicode(file_object)
@@ -134,10 +135,7 @@ class CsvFormat(TabLibFileFormat):
     def detect(self, file_handler, file_contents):
         if self.is_valid_csv(file_handler, file_contents):
             # Handles row validations
-            return super(CsvFormat, self).detect(
-                file_handler,
-                file_contents
-            )
+            return super(CsvFormat, self).detect(file_handler, file_contents)
         return False
 
     def is_valid_csv(self, file_handler, file_contents):
@@ -148,12 +146,7 @@ class CsvFormat(TabLibFileFormat):
             # Note: dataset is valid for test_file.yaml in the tests directory
             # Would need suggestions on how to better handle this
             return not YamlFormat().detect(file_handler, file_contents)
-        except (
-            InvalidDimensions,
-            UnsupportedFormat,
-            AttributeError,
-            NullError
-        ):
+        except (InvalidDimensions, UnsupportedFormat, AttributeError, NullError):
             pass
         return False
 
@@ -192,21 +185,21 @@ class YamlFormat(TabLibFileFormat):
                 allow_unicode=True,
                 default_flow_style=False,
                 sort_keys=False,
-                Dumper=CSafeDumper
+                Dumper=CSafeDumper,
             )
         else:
             return _yaml.yaml.safe_dump(
                 dataset._package(ordered=False),
                 allow_unicode=True,
                 default_flow_style=False,
-                sort_keys=False
+                sort_keys=False,
             )
 
     def detect(self, file_handler, file_contents):
         try:
             return super(YamlFormat, self).detect(file_handler, file_contents)
         except _yaml.yaml.error.YAMLError:
-            raise InvalidFileError(_(u"Invalid YAML File."))
+            raise InvalidFileError(_("Invalid YAML File."))
 
 
 class TxtFormat(FileFormat):

@@ -1,11 +1,7 @@
-init:
-	pip install -r requirements.txt
-
 lint:
-	flake8 --max-line-length 120 --extend-ignore=D
+	poetry run black .
+	poetry run isort .
+	poetry run flake8 . --extend-ignore=D,E501,W601 --extend-exclude=docs/ --statistics --count
 
 test:
-	./runtests.py
-
-coverage:
-	coverage run --source=multi_import runtests.py && coverage report
+	poetry run python ./runtests.py

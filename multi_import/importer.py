@@ -1,13 +1,12 @@
 from itertools import chain
 
 from django.core.exceptions import MultipleObjectsReturned, ValidationError
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework.serializers import Serializer
-from six import string_types, text_type
 from tablib import Dataset
 
 from multi_import.cache import CachedQuery, ObjectCache
-from multi_import.data import ImportResult, RowStatus, Row, ExportResult
+from multi_import.data import ExportResult, ImportResult, Row, RowStatus
 from multi_import.exceptions import InvalidFileError
 from multi_import.formats import all_formats
 from multi_import.helpers import fields, files, serializers, strings
@@ -69,7 +68,7 @@ class DataReader(object):
         return any(
             value
             for value in row_data.values()
-            if value and (not isinstance(value, text_type) or not value.isspace())
+            if value and (not isinstance(value, str) or not value.isspace())
         )
 
     def read_dataset_rows(self, dataset):
@@ -99,8 +98,8 @@ class DataReader(object):
             if isinstance(value, float) and value.is_integer():
                 value = int(value)
 
-            if not isinstance(value, string_types):
-                value = text_type(value)
+            if not isinstance(value, str):
+                value = str(value)
 
             data[key] = strings.normalize_string(value)
         return data
@@ -148,9 +147,9 @@ class Importer(object):
     serializer_classes = None
 
     error_messages = {
-        "cannot_update": _(u"Can not update this item."),
-        "multiple_matches": _(u"Multiple database entries match."),
-        "multiple_updates": _(u"This item is being updated more than once."),
+        "cannot_update": _("Can not update this item."),
+        "multiple_matches": _("Multiple database entries match."),
+        "multiple_updates": _("This item is being updated more than once."),
     }
 
     def __init__(self):

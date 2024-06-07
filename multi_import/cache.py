@@ -1,8 +1,6 @@
 from collections import defaultdict
 
 from django.core.exceptions import MultipleObjectsReturned
-import six
-from tablib.compat import unicode
 
 
 class CachedObject(object):
@@ -29,7 +27,7 @@ class ObjectCache(object):
 
     @staticmethod
     def _get_value_key(field, value):
-        return unicode(value).lower() if field.endswith("__iexact") else unicode(value)
+        return str(value).lower() if field.endswith("__iexact") else str(value)
 
     def add(self, obj):
         cached_obj = CachedObject(obj)
@@ -48,7 +46,7 @@ class ObjectCache(object):
         self.object_count += 1
 
     def get(self, field, value, default=None):
-        if isinstance(field, six.string_types):
+        if isinstance(field, str):
             field = (field,)
             value = (value,)
 
@@ -67,9 +65,7 @@ class ObjectCache(object):
 
     def find(self, value, fields=None):
         fields = fields or self.lookup_fields
-        single_fields = (
-            field for field in fields if isinstance(field, six.string_types)
-        )
+        single_fields = (field for field in fields if isinstance(field, str))
         for field in single_fields:
             result = self.get(field, value)
             if result:
@@ -79,7 +75,7 @@ class ObjectCache(object):
     def match(self, data, fields=None):
         fields = fields or self.lookup_fields
         for field in fields:
-            if isinstance(field, six.string_types):
+            if isinstance(field, str):
                 value = data.get(field, None)
             else:
                 value = [data.get(f) for f in field]
@@ -98,8 +94,7 @@ class ObjectCache(object):
         return set(
             item
             for sublist in (
-                (item,) if isinstance(item, six.string_types) else item
-                for item in fields
+                (item,) if isinstance(item, str) else item for item in fields
             )
             for item in sublist
         )

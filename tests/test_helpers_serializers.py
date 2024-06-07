@@ -1,9 +1,8 @@
 from django.test import TestCase
 from rest_framework.serializers import ModelSerializer
 
-from multi_import.helpers import serializers
 from multi_import.fields import LookupRelatedField
-
+from multi_import.helpers import serializers
 from tests.models import Book, Chapter, Person
 
 
@@ -120,7 +119,7 @@ class SerializerHelperTests(TestCase):
         rep = serializer.to_representation(instance=justin)
         children = rep["children"]
 
-        self.assertEqual(children, [u"Hadrien", u"Xavier", u"Ella-Grace"])
+        self.assertEqual(children, ["Hadrien", "Xavier", "Ella-Grace"])
 
     def test_get_diff_data_for_new_object(self):
         serializer = PersonSerializer(
