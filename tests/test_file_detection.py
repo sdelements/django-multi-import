@@ -6,7 +6,7 @@ from multi_import.helpers.files import decode_contents
 
 class CSVFileDetect(TestCase):
     def test_json_file(self):
-        with open("tests/artifacts/test_file.json", "rb") as file:
+        with open("tests/fixtures/test_file.json", "rb") as file:
             file.seek(0)
             file_contents = file.read()
             decoded_contents = decode_contents(file_contents)
@@ -18,7 +18,7 @@ class CSVFileDetect(TestCase):
             self.assertFalse(file_detection_result)
 
     def test_yaml_file(self):
-        with open("tests/artifacts/test_file.yaml", "rb") as file:
+        with open("tests/fixtures/test_file.yaml", "rb") as file:
             file.seek(0)
             file_contents = file.read()
             decoded_contents = decode_contents(file_contents)
@@ -30,7 +30,7 @@ class CSVFileDetect(TestCase):
             self.assertFalse(file_detection_result)
 
     def test_csv_file(self):
-        with open("tests/artifacts/test_file.csv", "rb") as file:
+        with open("tests/fixtures/test_file.csv", "rb") as file:
             file.seek(0)
             file_contents = file.read()
             decoded_contents = decode_contents(file_contents)
@@ -42,7 +42,7 @@ class CSVFileDetect(TestCase):
             self.assertTrue(file_detection_result)
 
     def test_xlsx_file(self):
-        with open("tests/artifacts/test_file.xlsx", "rb") as file:
+        with open("tests/fixtures/test_file.xlsx", "rb") as file:
             file.seek(0)
             file_contents = file.read()
             decoded_contents = decode_contents(file_contents)
