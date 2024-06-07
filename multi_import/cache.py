@@ -65,9 +65,7 @@ class ObjectCache(object):
 
     def find(self, value, fields=None):
         fields = fields or self.lookup_fields
-        single_fields = (
-            field for field in fields if isinstance(field, str)
-        )
+        single_fields = (field for field in fields if isinstance(field, str))
         for field in single_fields:
             result = self.get(field, value)
             if result:
@@ -96,8 +94,7 @@ class ObjectCache(object):
         return set(
             item
             for sublist in (
-                (item,) if isinstance(item, str) else item
-                for item in fields
+                (item,) if isinstance(item, str) else item for item in fields
             )
             for item in sublist
         )

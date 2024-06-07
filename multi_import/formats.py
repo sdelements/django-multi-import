@@ -3,10 +3,14 @@ from io import BytesIO, StringIO
 
 import chardet
 from django.utils.translation import gettext_lazy as _
+from tablib import detect_format
 from tablib.core import Dataset, InvalidDimensions, UnsupportedFormat
 from tablib.formats import _csv, _json, _xls, _xlsx, _yaml
-from tablib import detect_format
-from yaml import CSafeDumper
+
+try:
+    from yaml import CSafeDumper
+except ImportError:
+    CSafeDumper = None
 
 from multi_import.exceptions import InvalidFileError
 from multi_import.helpers import strings

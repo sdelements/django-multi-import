@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
+from io import BytesIO
+
 import chardet
 from django.test import TestCase
-from io import BytesIO
 
 from multi_import.helpers import files
 
