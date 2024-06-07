@@ -19,7 +19,7 @@ classifiers=[
     'Topic :: Software Development :: Libraries :: Python Modules',
 
     # Pick your license as you wish (should match "license" above)
-    'License :: OSI Approved :: MIT',
+    'License :: OSI Approved :: MIT License',
 
     # Supported Languages
     'Natural Language :: English',
