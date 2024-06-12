@@ -3,7 +3,6 @@ from io import BytesIO, StringIO
 
 import chardet
 from django.utils.translation import gettext_lazy as _
-from tablib import detect_format
 from tablib.core import Dataset, InvalidDimensions, UnsupportedFormat
 from tablib.formats import registry
 
@@ -19,7 +18,6 @@ except ImportError:
     CSafeDumper = None
 
 from multi_import.exceptions import InvalidFileError
-from multi_import.helpers import strings
 
 
 class FileFormat(object):
@@ -73,7 +71,7 @@ class TabLibFileFormat(FileFormat):
     def detect(self, file_handler, file_contents):
         file_object = self.get_file_object(file_handler, file_contents)
         try:
-            return detect_format(file_object)
+            return self.format.detect(file_object)
         except AttributeError:
             pass
         return False
@@ -82,21 +80,9 @@ class TabLibFileFormat(FileFormat):
         return file_object
 
     def read(self, file_handler, file_contents):
-        file_object = self.get_file_object(file_handler, file_contents)
-        file_object = self.pre_read(file_object)
-
         try:
-            dataset = Dataset()
-
-            try:
-                self.format.import_set(dataset, file_object)
-            except TypeError:
-                # Versions of tablib>=0.11.5 expect a
-                # buffer-like object to pass to BytesIO
-                self.format.import_set(dataset, file_object.read())
-
-            return dataset
-        except (AttributeError, KeyError):
+            return Dataset().load(file_contents, self.format.title)
+        except (AttributeError, KeyError) as e:
             raise InvalidFileError(_("Empty or Invalid File."))
 
     def export_set(self, dataset):
@@ -118,7 +104,7 @@ class TabLibFileFormat(FileFormat):
 class CsvFormat(TabLibFileFormat):
     def __init__(self):
         super(CsvFormat, self).__init__(
-            _csv, "application/csv", read_file_as_string=True
+            _csv, "application/csv", read_file_as_string=False
         )
 
     @classmethod
@@ -133,22 +119,19 @@ class CsvFormat(TabLibFileFormat):
         else:
             raise InvalidFileError(_("Unknown file type."))
 
+    def get_file_object(self, file_handler, file_contents):
+        return file_handler
+
     def pre_read(self, file_object):
-        file_object = self.ensure_unicode(file_object)
-        file_object = strings.normalize_string(file_object)
         return file_object
 
     def detect(self, file_handler, file_contents):
-        if self.is_valid_csv(file_handler, file_contents):
-            # Handles row validations
-            return super(CsvFormat, self).detect(file_handler, file_contents)
-        return False
+        return self.is_valid_csv(file_handler, file_contents)
 
     def is_valid_csv(self, file_handler, file_contents):
-        file_object = self.get_file_object(file_handler, file_contents)
         try:
             # Would error out if invalid csv file
-            Dataset().load(file_object, "csv")
+            Dataset().load(file_contents, "csv")
             # Note: dataset is valid for test_file.yaml in the tests directory
             # Would need suggestions on how to better handle this
             return not YamlFormat().detect(file_handler, file_contents)
@@ -200,12 +183,6 @@ class YamlFormat(TabLibFileFormat):
                 default_flow_style=False,
                 sort_keys=False,
             )
-
-    def detect(self, file_handler, file_contents):
-        try:
-            return super(YamlFormat, self).detect(file_handler, file_contents)
-        except _yaml.yaml.error.YAMLError:
-            raise InvalidFileError(_("Invalid YAML File."))
 
 
 class TxtFormat(FileFormat):
