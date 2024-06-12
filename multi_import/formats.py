@@ -5,7 +5,13 @@ import chardet
 from django.utils.translation import gettext_lazy as _
 from tablib import detect_format
 from tablib.core import Dataset, InvalidDimensions, UnsupportedFormat
-from tablib.formats import _csv, _json, _xls, _xlsx, _yaml
+from tablib.formats import registry
+
+_csv = registry.get_format("csv")
+_json = registry.get_format("json")
+_xls = registry.get_format("xls")
+_xlsx = registry.get_format("xlsx")
+_yaml = registry.get_format("yaml")
 
 try:
     from yaml import CSafeDumper
