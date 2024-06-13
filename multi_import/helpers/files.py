@@ -33,10 +33,8 @@ def read(file_formats, file):
         try:
             if file_format.detect(file, decoded_file_contents):
                 return file_format.read(file, decoded_file_contents)
-
         except AttributeError:
             pass
-
         except tablib.InvalidDimensions:
             raise InvalidFileError(
                 _(
@@ -44,7 +42,6 @@ def read(file_formats, file):
                     "and all rows must have same columns/properties."
                 )
             )
-
         except tablib.UnsupportedFormat:
             raise InvalidFileError(_("Invalid File."))
 

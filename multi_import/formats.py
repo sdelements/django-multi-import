@@ -6,6 +6,8 @@ from django.utils.translation import gettext_lazy as _
 from tablib.core import Dataset, InvalidDimensions, UnsupportedFormat
 from tablib.formats import registry
 
+from multi_import.exceptions import InvalidFileError
+
 _csv = registry.get_format("csv")
 _json = registry.get_format("json")
 _xls = registry.get_format("xls")
@@ -16,8 +18,6 @@ try:
     from yaml import CSafeDumper
 except ImportError:
     CSafeDumper = None
-
-from multi_import.exceptions import InvalidFileError
 
 
 class FileFormat(object):
@@ -69,9 +69,10 @@ class TabLibFileFormat(FileFormat):
         return file_handler
 
     def detect(self, file_handler, file_contents):
-        file_object = self.get_file_object(file_handler, file_contents)
+        file_handler.seek(0)
+
         try:
-            return self.format.detect(file_object)
+            return self.format.detect(file_handler)
         except AttributeError:
             pass
         return False
@@ -80,9 +81,12 @@ class TabLibFileFormat(FileFormat):
         return file_object
 
     def read(self, file_handler, file_contents):
+        file_obj = self.get_file_object(file_handler, file_contents)
+        file_obj = self.pre_read(file_obj)
+
         try:
-            return Dataset().load(file_contents, self.format.title)
-        except (AttributeError, KeyError) as e:
+            return Dataset().load(file_obj, self.format.title)
+        except (AttributeError, KeyError):
             raise InvalidFileError(_("Empty or Invalid File."))
 
     def export_set(self, dataset):
@@ -104,7 +108,7 @@ class TabLibFileFormat(FileFormat):
 class CsvFormat(TabLibFileFormat):
     def __init__(self):
         super(CsvFormat, self).__init__(
-            _csv, "application/csv", read_file_as_string=False
+            _csv, "application/csv", read_file_as_string=True
         )
 
     @classmethod
@@ -119,16 +123,10 @@ class CsvFormat(TabLibFileFormat):
         else:
             raise InvalidFileError(_("Unknown file type."))
 
-    def get_file_object(self, file_handler, file_contents):
-        return file_handler
-
     def pre_read(self, file_object):
-        return file_object
+        return self.ensure_unicode(file_object)
 
     def detect(self, file_handler, file_contents):
-        return self.is_valid_csv(file_handler, file_contents)
-
-    def is_valid_csv(self, file_handler, file_contents):
         try:
             # Would error out if invalid csv file
             Dataset().load(file_contents, "csv")
