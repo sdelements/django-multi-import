@@ -81,11 +81,11 @@ class TabLibFileFormat(FileFormat):
         return file_object
 
     def read(self, file_handler, file_contents):
-        file_obj = self.get_file_object(file_handler, file_contents)
-        file_obj = self.pre_read(file_obj)
+        file_object = self.get_file_object(file_handler, file_contents)
+        file_object = self.pre_read(file_object)
 
         try:
-            return Dataset().load(file_obj, self.format.title)
+            return Dataset().load(file_object, self.format.title)
         except (AttributeError, KeyError):
             raise InvalidFileError(_("Empty or Invalid File."))
 
