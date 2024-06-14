@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "django-multi_import"
-version = "2.0.1"
+version = "2.0.2"
 homepage = "https://github.com/sdelements/django-multi-import"
 description = "Import/export multi Django resources together atomically."
 authors = ["Security Compass <contact@securitycompass.com>"]
