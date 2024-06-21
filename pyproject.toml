@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "django-multi_import"
-version = "2.0.2"
+version = "2.0.3"
 homepage = "https://github.com/sdelements/django-multi-import"
 description = "Import/export multi Django resources together atomically."
 authors = ["Security Compass <contact@securitycompass.com>"]
@@ -67,3 +67,6 @@ build-backend = "poetry.core.masonry.api"
 exclude_dirs = [
   './tests/',
 ]
+
+[tool.isort]
+profile = "black"
