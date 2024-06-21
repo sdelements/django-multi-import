@@ -2,6 +2,8 @@ from csv import Error as NullError
 from io import BytesIO, StringIO
 
 import chardet
+from json import dumps as json_dumps
+from yaml import dump as yaml_dump, safe_dump as yaml_safe_dump
 from django.utils.translation import gettext_lazy as _
 from tablib.core import Dataset, InvalidDimensions, UnsupportedFormat
 from tablib.formats import registry
@@ -148,9 +150,8 @@ class JsonFormat(TabLibFileFormat):
         )
 
     def export_set(self, dataset):
-        return _json.json.dumps(
+        return json_dumps(
             dataset.dict,
-            default=_json.date_handler,
             ensure_ascii=False,
             sort_keys=False,
             indent=2,
@@ -167,16 +168,16 @@ class YamlFormat(TabLibFileFormat):
         # By default use the C-based CSafeDumper,
         # otherwise fallback to pure Python SafeDumper.
         if CSafeDumper:
-            return _yaml.yaml.dump(
-                dataset._package(ordered=False),
+            return yaml_dump(
+                dataset._package(),
+                Dumper=CSafeDumper,
                 allow_unicode=True,
                 default_flow_style=False,
                 sort_keys=False,
-                Dumper=CSafeDumper,
             )
         else:
-            return _yaml.yaml.safe_dump(
-                dataset._package(ordered=False),
+            return yaml_safe_dump(
+                dataset._package(),
                 allow_unicode=True,
                 default_flow_style=False,
                 sort_keys=False,
